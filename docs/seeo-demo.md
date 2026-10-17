@@ -1,43 +1,173 @@
-# seeo facility intelligence demo
+# seeo installation and operating guide
 
-[Open the public demo](https://seeo-facility-demo.dean501646.chatgpt.site/).
+Start with the [solution overview and Docker quick start](../README.md). This guide covers installation details, day-to-day operation, verification and the boundaries of the demo.
 
-This fork contains an experimental seeo warehouse and distribution-centre scenario built with Cesium. The site, workers, vehicles, policies, sample events and camera imagery are fictional. It does not connect to customer cameras, seeo services or operational data.
+## Choose how to run it
 
-## Explore the local demo
+| Option | Use it for | Installation |
+| --- | --- | --- |
+| [Public demo](https://seeo-facility-demo.dean501646.chatgpt.site/) | Sharing and exploring the fictional facility | None; open in a browser |
+| Docker Compose | Local development/demo with consistent container dependencies | Git, Docker and Compose v2 |
+| Native Node.js | Developers who want to work directly with the source | Git, a supported Node.js version and npm |
 
-Run the existing Docker Compose setup, then open `http://127.0.0.1:4173/seeo-demo.html`. The original God's Eye View globe remains at `/`.
+Use branch **`seeo/facility-scenario-prototype`**. The repository’s default `main` branch remains the original globe.
 
-The scenario includes a warehouse and truck yard, four forklifts, seven people, an articulated truck reverse-docking animation, selectable areas and cameras, seven synthetic camera-style images and sample event review. Camera images are static generated illustrations, not footage or exact reconstructions of model geometry. Camera coverage is illustrative; unavailable monitoring remains unknown.
+## Docker installation
 
-Choose **Test a change**, **Review a change**, or the dispatch-area action to open analysis inside the facility. The facility stays loaded; Back to facility or Escape restores the prior selection, viewpoint, replay time and scroll. The standalone comparison remains available at `dispatch-comparison.html`.
+### Prerequisites
 
-Paired plan/3D scenes run an identical seeded workload through the baseline and proposed crossing. Barriers redirect people, gate rules create queues, and trajectories determine proximity episodes, exposure, waiting, completed trips, backlog and distance. Prominent scorecards show walking time/distance saved or added, forklift waiting and completed/unfinished work. The shared timeline and encounter buttons support inspection of both runs.
+Confirm the tools are available and the Docker engine is running:
 
-Forklift load counters show picked, delivered and remaining loads at playback time and over the trial. Each modeled forklift trip assumes one pallet pickup at activation and delivery at its destination; queued/future trips have not picked. Handling and loading service times are not modeled. These are fictional simulated counters, not observed seeo measurements.
+```sh
+git --version
+docker version
+docker compose version
+```
 
-The original facility barrier remains a layout illustration; its historical fixture events do not change. The separate comparison is a hypothetical crossing model with visible assumptions, including simplified braking and no collision physics. Its outputs are not validated injury or incident predictions.
+On Windows/macOS, start Docker Desktop first. On Windows, select Linux containers. On Linux, the current account must be allowed to use the Docker engine. A first build needs network access to download its base image and dependencies.
 
-## Source and verification
+### Clone and start
 
-- Demo entry: `seeo-demo.html`.
-- Calculated comparison: `dispatch-comparison.html`; engine `src/seeo-demo/dispatch.js`.
-- Facility, replay, imagery and selection: `src/seeo-demo/`.
-- Build entry configuration: `seeo-demo.vite.config.js`.
-- Original implementation briefs: `docs/seeo-facility-scenario.md` and `docs/seeo-replay-brief.md`.
+```sh
+git clone --branch seeo/facility-scenario-prototype https://github.com/dean-marris/gods-eye-view.git
+cd gods-eye-view
+docker compose up --build -d
+docker compose ps
+docker compose logs --tail=80 gods-eye-view
+```
 
-Run behavior tests inside the Docker service:
+On native Linux, use your account’s UID/GID when starting if they differ from 1000:
+
+```sh
+env UID="$(id -u)" GID="$(id -g)" docker compose up --build -d
+```
+
+Wait for the log to report `Ready at http://localhost:4173/`, then open:
+
+**<http://localhost:4173/seeo-demo.html>**
+
+The root URL `/` opens the original globe. The dispatch experiment also has a direct local entry at `/dispatch-comparison.html?from=local`; its normal entry is inside the full facility.
+
+### What Docker runs
+
+- `Dockerfile` installs the project’s Node/npm dependencies and copies the source into an image. It runs as a non-root user.
+- `compose.yaml` builds that image locally, mounts the checkout at `/app` for development, and gives `/app/node_modules` a separate container volume.
+- The startup script runs Vite and the original globe’s API middleware. It is a development/demo server, not a separate Nginx production image.
+- Port 4173 is published on `127.0.0.1`, so the browser on that machine can reach it. A remote server’s `localhost` is not your laptop’s `localhost`.
+- The seeo facility requires no provider API keys. Optional globe/provider settings are described in the [upstream README](../README.upstream.md).
+
+The documented installation builds from the repository with Compose and does not require a Docker Hub or GHCR image tag.
+
+### Everyday commands
+
+From the checkout directory:
+
+```sh
+# Status and recent logs
+docker compose ps
+docker compose logs --tail=100 gods-eye-view
+
+# Stop / start
+docker compose stop
+docker compose up -d
+
+# Update source and rebuild
+git pull --ff-only origin seeo/facility-scenario-prototype
+docker compose up --build -d
+```
+
+On Linux, keep using the UID/GID start variant if your installation needs it. If `git pull --ff-only` stops because of local edits or divergent history, preserve and review those changes before reconciling them.
+
+## Native development without Docker
+
+Use a Node.js version allowed by `package.json`: Node **24.14 or newer within 24.x**, or **26.x**. The container pins its own version; a host Node installation is unnecessary for Docker users.
+
+In a POSIX shell, from the cloned seeo branch:
+
+```sh
+PUPPETEER_SKIP_DOWNLOAD=1 npm ci
+npm run dev -- --host 127.0.0.1 --port 4173
+```
+
+Open <http://localhost:4173/seeo-demo.html>. `PUPPETEER_SKIP_DOWNLOAD=1` skips the browser download used by upstream QA scripts; it is not needed for the facility itself. These shell environment commands are for Linux/macOS/WSL; Docker is the shared path documented above for Windows PowerShell users.
+
+## Using the facility and comparison
+
+The whole facility remains the main experience. Explore the plan/3D model, select an area or camera, inspect the generated images, or replay the busy shift and truck docking.
+
+**Test a change**, **Review a change**, and the selected dispatch-area action open an analysis dialog while keeping the facility mounted. Entering from an active 3D view temporarily focuses the dispatch crossing. Back to facility or Escape restores the saved camera pose, area, replay time, scroll and focus. The generated camera image in the dialog is static context; the paired crossing scenes below it render the calculated model.
+
+The experiment uses the same seeded arrivals/trips on both sides. Change proposal controls, then select **Run comparison** to apply them; edited but unapplied settings do not change the displayed trial. Shared playback and encounter selection seek both sides together.
+
+The full-trial scorecard stays separate from the live counters under each scene. For example, the full default trial delivers 14 loads on each side, while at 20 seconds the live counters show 6 picked, 1 delivered and 13 remaining on each side.
+
+### Interpret work and savings correctly
+
+- One simulated forklift trip represents one pallet: pickup at job activation, delivery at the destination. People are excluded from load counts, and queued/future forklifts have not picked. Remaining-to-deliver includes future work.
+- Walking and waiting figures sum time across actors. They are not elapsed shift time or staffing savings.
+- Walking distance includes partially completed journeys. Completed/unfinished counts retain the whole original workload.
+- Elapsed completion is reported only when all original trips finish. A trial ending with backlog cannot establish a faster completion time.
+- Operational savings use before minus after. Positive, negative and unchanged outcomes are all retained; labels distinguish savings from added cost.
+- Proximity and shared crossing occupancy are geometric simulation indicators, not measured safety outcomes or injury probabilities.
+
+See the [README measurement table and default example](../README.md#understand-the-measurements) for concrete definitions and results. The default barrier-and-gate treatment adds walking and waiting while reducing shared crossing occupancy; the model does not force a beneficial result.
+
+## Tests and build
+
+Run the scoped seeo tests inside Docker:
 
 ```sh
 docker compose exec -T gods-eye-view node --test 'src/seeo-demo/*.test.mjs'
 ```
 
-Build the demo and globe with:
+Build the original globe, seeo facility and comparison together:
 
 ```sh
 docker compose exec -T gods-eye-view npx vite build --config seeo-demo.vite.config.js
 ```
 
-The hosted site is a standalone static snapshot with its own publication workflow. Editing local files does not automatically update the public site. The local 8 TB storage override is machine-specific; adjust bind mounts for another workstation. Keep provider credentials in local environment files and never commit them.
+For native development, use the same Node and Vite commands without `docker compose exec -T gods-eye-view`.
 
-The upstream God's Eye View project and MIT license are retained. TEN Leasing branding appears in a clearly labelled generated yard illustration at the owner's request; it is not evidence of a customer deployment or affiliation.
+The explicit `seeo-demo.vite.config.js` matters: the upstream default `npm run build` is aimed at the globe. The seeo configuration emits all three HTML entry points into `dist/`.
+
+Tests cover deterministic workload parity, baseline invariance, crossing/gate behavior, exposure and distance accounting, unfinished work, signed savings, load milestones, replay/truck motion, selection and framing helpers. The latest feature verification passed 27 tests; this is the seeo suite, not a claim that every upstream QA workflow was run.
+
+## Storage, secrets and portability
+
+Choose the checkout’s location when cloning; the Compose source mount follows it. There is no requirement for an 8 TB drive.
+
+Dean’s running installation uses `/data/gods-eye-view` with a local, untracked `compose.override.yaml` that places dependencies under `/data/gods-eye-view-runtime/node_modules`. That override is specific to his machine and is not needed by a fresh clone. Do not copy its UID or disk paths onto another computer without adapting them.
+
+Docker excludes local environment files, dependencies, build output and caches from the image build context using `.dockerignore`. Compose still mounts the working checkout at runtime. Keep provider secrets in local environment files; do not commit them or expose the development server as an unauthenticated public backend.
+
+## Hosting and the public demo
+
+The [public demo](https://seeo-facility-demo.dean501646.chatgpt.site/) is a separately published static facility build. It does not run inside Dean’s local Docker container, and local edits or a GitHub push do not automatically deploy it.
+
+The standalone hosted source/publication workflow is separate from this fork. Its static entry uses `index.html` for the facility; this full repository uses `seeo-demo.html` because `index.html` belongs to the original globe. Do not overwrite the globe entry when integrating the facility.
+
+The compiled seeo pages and their assets can be hosted statically. The original globe’s provider/API middleware still needs its server runtime. This repository does not supply a dedicated production-only facility image, live customer backend, authentication or tenant isolation for a production seeo service.
+
+## Troubleshooting
+
+| Symptom | Check / action |
+| --- | --- |
+| Docker cannot connect to the engine | Start Docker Desktop/service and confirm `docker version` shows server information. |
+| `docker compose` is unavailable | Install/enable the Compose v2 plugin or Docker Desktop; use the two-word command shown here. |
+| The globe opens instead of the warehouse | Open `/seeo-demo.html`, not `/`. |
+| Facility page is missing | Confirm `git branch --show-current` reports `seeo/facility-scenario-prototype`, pull that branch and rebuild. |
+| Port 4173 is already allocated | Stop the conflicting service or change the host side of the mapping in `compose.yaml` to `127.0.0.1:4174:4173`, then start Compose and browse port 4174. |
+| Source/cache permission errors on Linux | Ensure the checkout belongs to your account and start with the documented UID/GID variant. Avoid making a root-owned clone. |
+| First build appears slow | Check build output; the initial base image and dependency downloads require network access. Run `docker compose build` in the foreground to see build progress. |
+| 3D fails or is blank | Use Plan view; check browser WebGL/hardware acceleration and the browser console. The synthetic camera images are separate from 3D rendering. |
+| Analysis settings seem unchanged | Select **Run comparison** after editing controls. |
+| The proposal shows extra time or distance | That is a valid modeled trade-off. Check the baseline, demand, completion counts and intervention assumptions. |
+| A changed local build does not appear on the public site | Local Docker, GitHub source and public-site publication are separate steps. |
+
+## Architecture and next steps
+
+The facility replay, crossing experiment and rendering are separate modules. The simulation runs at fixed 0.1-second steps, independent of browser render rate. Summaries and encounters come from its trajectories. Seven generated images provide illustrative context and do not change with replay time.
+
+See the [source map](../README.md#source-map), [facility brief](seeo-facility-scenario.md), [replay brief](seeo-replay-brief.md) and [upstream documentation](../README.upstream.md).
+
+The next operational expansion would add pickup/handling dwell, complete loading cycles, trailer capacity and dock service times before claiming loading-duration or throughput improvements. A customer digital twin also needs calibrated site geometry and cameras, operational records, observed baseline/after periods and validation of predicted versus measured results. Those capabilities are not implemented here.
