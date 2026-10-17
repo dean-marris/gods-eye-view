@@ -46,7 +46,7 @@ Wait for the log to report `Ready at http://localhost:4173/`, then open:
 
 **<http://localhost:4173/seeo-demo.html>**
 
-The root URL `/` opens the original globe. The dispatch experiment also has a direct local entry at `/dispatch-comparison.html?from=local`; its normal entry is inside the full facility.
+The root URL `/` opens the original globe. Direct analysis entries are `/loading-comparison.html?from=local` and `/dispatch-comparison.html?from=local`; their normal entry is inside the full facility.
 
 ### What Docker runs
 
@@ -95,22 +95,33 @@ Open <http://localhost:4173/seeo-demo.html>. `PUPPETEER_SKIP_DOWNLOAD=1` skips t
 
 The whole facility remains the main experience. Explore the plan/3D model, select an area or camera, inspect the generated images, or replay the busy shift and truck docking.
 
-**Test a change**, **Review a change**, and the selected dispatch-area action open an analysis dialog while keeping the facility mounted. Entering from an active 3D view temporarily focuses the dispatch crossing. Back to facility or Escape restores the saved camera pose, area, replay time, scroll and focus. The generated camera image in the dialog is static context; the paired crossing scenes below it render the calculated model.
+**Test a change**, **Review a change**, and the selected dispatch-area action open an analysis dialog while keeping the facility mounted. **Trailer loading** is the default mode; **Dispatch crossing** retains the existing barrier/gate experiment. In 3D, loading focuses the dispatch bays and crossing focuses the crossing. Back to facility or Escape restores the saved camera pose, area, replay time, scroll and focus. The camera image in the dialog is static context; the paired scenes render calculated task frames.
 
-The experiment uses the same seeded arrivals/trips on both sides. Change proposal controls, then select **Run comparison** to apply them; edited but unapplied settings do not change the displayed trial. Shared playback and encounter selection seek both sides together.
+### Trailer loading
 
-The full-trial scorecard stays separate from the live counters under each scene. For example, the full default trial delivers 14 loads on each side, while at 20 seconds the live counters show 6 picked, 1 delivered and 13 remaining on each side.
+The same pallet order passes through two forklifts, one checker and one dock on both sides. Each job has pickup dwell, loaded travel, checker walk/inspection, dock travel and loading service, then an empty return before the forklift can pick again. Stock, carried pallets and trailer inventory conserve the order. The trailer is parked in this experiment; the original facility still has the separate reversing-truck replay.
+
+Change order size, common trial window or proposed staging/checker distances, then rerun. Use **Equal layout** to reproduce the baseline. Longer distances can make the proposal worse. Shared playback, seek, rate, reset, delivery event buttons and Plan/3D work on both sides. Forklift status identifies loaded and empty stages. Large orders display illustrative stacked trailer inventory, not a validated trailer capacity/load plan.
+
+The default 24-pallet example loads the trailer in 489 s before versus 322.3 s proposed: about 2 min 47 s faster (34.1%). Checker walking falls from 576 m to 192 m and 384 s to 128 s. Forklift travel falls from 1,440 m to 864 m; total forklift queue wait falls from 211 s to 72.3 s. These are simulated outcomes of shorter routes with unchanged staffing and service times.
+
+### Dispatch crossing
+
+This mode uses the same seeded arrivals/trips on both sides. Change proposal controls, then select **Run comparison**; edited but unapplied settings do not change the displayed trial. Shared playback and encounter selection seek both sides together.
+
+The full-trial scorecard is separate from live counters. The default crossing trial delivers 14 assumed loads on each side; at 20 seconds its live counters show 6 picked, 1 delivered and 13 remaining on each side. Here one forklift trip assumes one pallet, picked at activation and delivered at the destination; this simpler counting rule belongs to crossing mode only.
 
 ### Interpret work and savings correctly
 
-- One simulated forklift trip represents one pallet: pickup at job activation, delivery at the destination. People are excluded from load counts, and queued/future forklifts have not picked. Remaining-to-deliver includes future work.
-- Walking and waiting figures sum time across actors. They are not elapsed shift time or staffing savings.
-- Walking distance includes partially completed journeys. Completed/unfinished counts retain the whole original workload.
-- Elapsed completion is reported only when all original trips finish. A trial ending with backlog cannot establish a faster completion time.
-- Operational savings use before minus after. Positive, negative and unchanged outcomes are all retained; labels distinguish savings from added cost.
-- Proximity and shared crossing occupancy are geometric simulation indicators, not measured safety outcomes or injury probabilities.
+- Trailer completion means the last pallet is loaded; all-empty-returns completion is a separate metric. A forklift still returning is unavailable for another job even after trailer loading finishes.
+- Walking and waiting figures sum time across actors. They are not elapsed shift time or staffing savings. Queue waiting includes time awaiting checker travel and service availability.
+- Distances and time are clipped to the shared observation window. Remaining work includes every undelivered original pallet/trip. Full-order completion savings are withheld when either run is incomplete.
+- Operational savings use before minus after. Negative and unchanged outcomes remain visible; an inferior proposal does not become a positive saving.
+- Dock unused capacity is window duration minus occupied loading-service time, including time after an order finishes. It is not the time until the trailer completes.
+- The loading schedule uses constant speeds and resource availability, with schematic display offsets for readability; it does not calculate collision avoidance or travel-path congestion.
+- Crossing proximity and shared occupancy are geometric indicators, not measured safety outcomes or injury probabilities. The default barrier/gate reduces shared crossing occupancy while adding walking and waiting. The new loading layout is a separate intervention demonstrating shorter routes.
 
-See the [README measurement table and default example](../README.md#understand-the-measurements) for concrete definitions and results. The default barrier-and-gate treatment adds walking and waiting while reducing shared crossing occupancy; the model does not force a beneficial result.
+See the [README measurement definitions and examples](../README.md#understand-the-measurements) for assumptions and results. Neither mode is connected to customer data.
 
 ## Tests and build
 
@@ -120,7 +131,7 @@ Run the scoped seeo tests inside Docker:
 docker compose exec -T gods-eye-view node --test 'src/seeo-demo/*.test.mjs'
 ```
 
-Build the original globe, seeo facility and comparison together:
+Build the original globe, seeo facility and both comparisons together:
 
 ```sh
 docker compose exec -T gods-eye-view npx vite build --config seeo-demo.vite.config.js
@@ -128,9 +139,9 @@ docker compose exec -T gods-eye-view npx vite build --config seeo-demo.vite.conf
 
 For native development, use the same Node and Vite commands without `docker compose exec -T gods-eye-view`.
 
-The explicit `seeo-demo.vite.config.js` matters: the upstream default `npm run build` is aimed at the globe. The seeo configuration emits all three HTML entry points into `dist/`.
+The explicit `seeo-demo.vite.config.js` matters: the upstream default `npm run build` is aimed at the globe. The seeo configuration emits all four HTML entry points into `dist/`.
 
-Tests cover deterministic workload parity, baseline invariance, crossing/gate behavior, exposure and distance accounting, unfinished work, signed savings, load milestones, replay/truck motion, selection and framing helpers. The latest feature verification passed 27 tests; this is the seeo suite, not a claim that every upstream QA workflow was run.
+Tests cover deterministic workload parity, baseline invariance, crossing/gate behavior, exposure and distance accounting, unfinished work, signed savings, load milestones, replay/truck motion, selection and framing helpers. Loading tests also cover independent single-pallet accounting, resource non-overlap, pickup/delivery/return milestones, equal and worse layouts, conservation, partial windows and invalid inputs. The latest feature verification passed 35 tests; this is the seeo suite, not a claim that every upstream QA workflow was run.
 
 ## Storage, secrets and portability
 
@@ -166,8 +177,8 @@ The compiled seeo pages and their assets can be hosted statically. The original 
 
 ## Architecture and next steps
 
-The facility replay, crossing experiment and rendering are separate modules. The simulation runs at fixed 0.1-second steps, independent of browser render rate. Summaries and encounters come from its trajectories. Seven generated images provide illustrative context and do not change with replay time.
+The facility replay, crossing experiment, loading schedule and renderers are separate modules. Crossing runs at fixed 0.1-second steps; loading schedules task/resource intervals and interpolates their positions independently of render rate. Metrics come from those trajectories or task intervals. Seven generated images provide illustrative context and do not change with replay time.
 
 See the [source map](../README.md#source-map), [facility brief](seeo-facility-scenario.md), [replay brief](seeo-replay-brief.md) and [upstream documentation](../README.upstream.md).
 
-The next operational expansion would add pickup/handling dwell, complete loading cycles, trailer capacity and dock service times before claiming loading-duration or throughput improvements. A customer digital twin also needs calibrated site geometry and cameras, operational records, observed baseline/after periods and validation of predicted versus measured results. Those capabilities are not implemented here.
+The loading expansion now includes pickup/handling dwell, dock service, complete return cycles and order conservation. Future work includes calibrated trailer capacity and loading constraints, congestion/steering physics, customer geometry and cameras, operational records, observed baseline/after periods and validation of predictions against measured results. Customer calibration and live seeo ingestion remain future integrations.

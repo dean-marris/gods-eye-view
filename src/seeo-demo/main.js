@@ -188,7 +188,7 @@ function render() {
     const entry = document.createElement("button");
     entry.type = "button"; entry.className = "primary-button analysis-entry";
     entry.setAttribute("data-analysis", "");
-    entry.textContent = "Test a dispatch change ↗";
+    entry.textContent = "Compare loading & crossing ↗";
     $("details").prepend(entry);
   }
   $("timeline").innerHTML = events
@@ -468,9 +468,7 @@ function openAnalysis(trigger) {
     pose: model?.captureView(),
   };
   dispatchReplay({type: "pause"});
-  if (state.view === "model") model?.closeUp();
-  $("analysis-context-image").src = areaImages.crossing;
-  $("analysis-frame").src = "./dispatch-comparison.html?embed=1";
+  selectAnalysisMode("loading");
   $("analysis-dialog").showModal();
 }
 $("dispatch-comparison-link").addEventListener("click", event => {
@@ -492,3 +490,16 @@ $("analysis-dialog").addEventListener("close", () => {
     if (saved.trigger?.isConnected) saved.trigger.focus({preventScroll: true});
   }));
 });
+
+function selectAnalysisMode(mode) {
+  const loading = mode === "loading";
+  document.querySelector(".analysis-context summary").textContent = loading ? "Dispatch bays · camera context" : "Dispatch crossing · camera context";
+  document.querySelector(".analysis-context p").textContent = loading ? "Dispatch bays · C01 shared context · Generated static illustration. The experiment below is a separate stylized loading cutout; observed site measurements are not connected." : "Dispatch crossing · C01 · Generated static illustration. The comparison below is a separate fictional crossing model.";
+  $("analysis-context-image").src = loading ? areaImages.dispatch : areaImages.crossing;
+  $("analysis-context-image").alt = loading ? "Synthetic dispatch bay camera context" : "Synthetic dispatch crossing camera context";
+  if (state.view === "model") { if (loading) model?.dockView(); else model?.closeUp(); }
+  $("analysis-title").textContent = loading ? "Trailer loading analysis" : "Dispatch crossing analysis";
+  $("analysis-frame").src = loading ? "./loading-comparison.html?embed=1" : "./dispatch-comparison.html?embed=1";
+  for (const button of document.querySelectorAll("[data-analysis-mode]")) button.setAttribute("aria-pressed", button.dataset.analysisMode === mode);
+}
+for (const button of document.querySelectorAll("[data-analysis-mode]")) button.addEventListener("click", () => selectAnalysisMode(button.dataset.analysisMode));

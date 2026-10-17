@@ -12,6 +12,7 @@ export default defineConfig(async (environment) =>
           input: {
             globe: fileURLToPath(new URL('./index.html', import.meta.url)),
             seeo: fileURLToPath(new URL('./seeo-demo.html', import.meta.url)),
+            loading: fileURLToPath(new URL('./loading-comparison.html', import.meta.url)),
             comparison: fileURLToPath(new URL('./dispatch-comparison.html', import.meta.url)),
           },
         },

@@ -1,0 +1,36 @@
+@import "./dispatch.css";
+.loading-events {
+  display: grid;
+  gap: 7px;
+  max-height: 480px;
+  overflow: auto;
+}
+.loading-events button {
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+}
+.scene svg text {
+  font-family: system-ui, sans-serif;
+  fill: #264d54;
+}
+.scene-caption {
+  line-height: 1.8;
+  min-height: 45px;
+}
+@media (max-width: 540px) {
+  main {
+    padding: 24px 12px;
+  }
+  .settings fieldset {
+    width: 100%;
+  }
+  .settings label {
+    max-width: 100%;
+  }
+  .view-toolbar p {
+    line-height: 1.6;
+  }
+  .scene {
+    height: 300px;
+  }
+}

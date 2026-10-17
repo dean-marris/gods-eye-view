@@ -1373,3 +1373,5 @@ h1 {
 #analysis-frame { width: 100%; flex: 1; min-height: 0; border: 0; background: #f0f3f1; }
 .analysis-entry { margin-bottom: 16px; }
 @media(max-width: 560px) { .analysis-heading { padding: 12px; }.analysis-heading h2 { font-size: 16px; }.analysis-heading .eyebrow { font-size: 8px; }.analysis-heading button { max-width: 120px; font-size: 11px; }.analysis-context { padding: 8px 12px; }.analysis-context img { width: 90px; height: 65px; }.analysis-context p { font-size: 9px; } }
+
+.analysis-modes {display:flex;gap:8px;padding:9px 22px;background:#dfe9df;flex:none;flex-wrap:wrap}.analysis-modes button {padding:9px 14px;border:1px solid #9cb7ab;border-radius:5px;background:white;color:#183e43;cursor:pointer}.analysis-modes button[aria-pressed="true"] {background:#183e43;color:white}

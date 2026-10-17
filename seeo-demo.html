@@ -51,7 +51,7 @@
           </div>
         </div>
       </section>
-      <a id="dispatch-comparison-link" href="./dispatch-comparison.html" style="display:block;background:#183e43;color:#fff;padding:16px 22px;border-radius:8px;margin:0 0 20px;text-decoration:none;font-weight:650">Test a change ↗ <span style="font-size:12px;font-weight:400;margin-left:12px">Compare the same dispatch shift before and after a barrier + gate</span></a>
+      <a id="dispatch-comparison-link" href="./loading-comparison.html" style="display:block;background:#183e43;color:#fff;padding:16px 22px;border-radius:8px;margin:0 0 20px;text-decoration:none;font-weight:650">Test a change ↗ <span style="font-size:12px;font-weight:400;margin-left:12px">Compare trailer loading layouts or a dispatch crossing change</span></a>
       <nav class="story" aria-label="Guided scenario">
         <button data-step="overview" class="active">
           <span>01</span>Find the pattern
@@ -237,9 +237,10 @@
       </p>
     </main>
     <dialog id="analysis-dialog" aria-labelledby="analysis-title">
-      <div class="analysis-heading"><div><p class="eyebrow">Facility / Dispatch crossing / Test a change</p><h2 id="analysis-title">Dispatch analysis</h2></div><button id="close-analysis" type="button" autofocus>← Back to facility</button></div>
+      <div class="analysis-heading"><div><p class="eyebrow">Facility / Analysis / Test a change</p><h2 id="analysis-title">Trailer loading analysis</h2></div><button id="close-analysis" type="button" autofocus>← Back to facility</button></div>
+      <nav class="analysis-modes" aria-label="Analysis mode"><button type="button" data-analysis-mode="loading" aria-pressed="true">Trailer loading</button><button type="button" data-analysis-mode="dispatch" aria-pressed="false">Dispatch crossing</button></nav>
       <details class="analysis-context" open><summary>Dispatch crossing · camera context</summary><div><img id="analysis-context-image" alt="Synthetic dispatch crossing camera context"/><p>Dispatch crossing · C01 · Generated static illustration. This close-up locates the trial within the full facility; the comparison below is a separate fictional crossing model.</p></div></details>
-      <iframe id="analysis-frame" title="Simulated dispatch change comparison"></iframe>
+      <iframe id="analysis-frame" title="Simulated facility change comparison"></iframe>
     </dialog>
     <dialog id="camera-dialog" aria-labelledby="camera-title">
       <div class="dialog-heading">
@@ -270,6 +271,6 @@
       </button>
     </dialog>
     <script type="module" src="/src/seeo-demo/main.js"></script>
-  <script>if(location.pathname.endsWith("seeo-demo.html")) document.getElementById("dispatch-comparison-link").href="./dispatch-comparison.html?from=local";</script>
+  <script>if(location.pathname.endsWith("seeo-demo.html")) document.getElementById("dispatch-comparison-link").href="./loading-comparison.html?from=local";</script>
 </body>
 </html>

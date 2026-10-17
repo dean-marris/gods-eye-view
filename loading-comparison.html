@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#122d36" />
+    <title>seeo · Trailer loading experiment</title>
+  </head>
+  <body>
+    <header>
+      <a class="brand" href="./">seeo<span>.</span></a
+      ><span>FACILITY INTELLIGENCE</span
+      ><a id="back" href="./">← Facility & evidence</a>
+    </header>
+    <main>
+      <div class="intro">
+        <div>
+          <p class="eyebrow">FICTIONAL FACILITY / TRAILER LOADING</p>
+          <h1>Closer staging. A shorter loading cycle.</h1>
+          <p>
+            Same pallets. Two forklifts. One checker and one loading dock. Move
+            staging and the checker station closer, then compare the entire
+            loading workflow.
+          </p>
+        </div>
+        <div class="trial-badge">
+          SIMULATED TRIAL<span>No live data · no customer results</span>
+        </div>
+      </div>
+      <nav class="mode-links" aria-label="Analysis mode">
+        <a class="selected" aria-current="page" href="./loading-comparison.html"
+          >Trailer loading</a
+        ><a href="./dispatch-comparison.html">Dispatch crossing ↗</a>
+      </nav>
+      <section class="operational-summary">
+        <p class="eyebrow">COMPUTED LAYOUT IMPACT · BEFORE − AFTER</p>
+        <h2 id="headline"></h2>
+        <p id="summary-window"></p>
+        <div id="scorecards" class="scorecards"></div>
+        <p id="completion-note"></p>
+        <p class="measurement-status">
+          <strong>Simulated now:</strong> deterministic task schedules.
+          <strong>Future observed baseline / after:</strong> seeo camera and
+          site measurements are not connected.
+        </p>
+      </section>
+      <form id="settings" class="settings">
+        <fieldset>
+          <legend>Same order, team & trial</legend>
+          <label
+            >Pallets<select name="order">
+              <option>12</option>
+              <option selected>24</option>
+              <option>48</option>
+            </select></label
+          ><label
+            >Common window (s)<input
+              name="window"
+              type="number"
+              min="1"
+              max="1800"
+              value="600"
+              required
+          /></label>
+        </fieldset>
+        <fieldset>
+          <legend>Proposed layout only · baseline fixed at 24 m / 12 m</legend>
+          <label
+            >Staging → check (m)<input
+              name="staging"
+              type="number"
+              min="2"
+              max="48"
+              step="1"
+              value="12"
+              required /></label
+          ><label
+            >Checker station → check (m)<input
+              name="checker"
+              type="number"
+              min="0"
+              max="24"
+              step="1"
+              value="4"
+              required
+          /></label>
+        </fieldset>
+        <button class="primary" type="submit">Rerun comparison ↗</button
+        ><button id="equal" type="button">Use equal layout</button>
+      </form>
+      <p id="run-status" class="run-status" role="status"></p>
+      <section class="playback" aria-label="Shared playback">
+        <button id="play" class="primary" type="button">Play</button
+        ><button id="reset" type="button">Reset</button
+        ><label class="timeline"
+          >Shared time<input
+            id="seek"
+            aria-label="Shared simulation time"
+            type="range"
+            min="0"
+            max="600"
+            step="0.1"
+            value="0" /></label
+        ><output id="time"></output
+        ><label
+          >Speed<select id="rate">
+            <option value="1">1×</option>
+            <option value="2">2×</option>
+            <option value="5" selected>5×</option>
+            <option value="10">10×</option>
+            <option value="20">20×</option>
+          </select></label
+        >
+      </section>
+      <div class="view-toolbar">
+        <p>Amber = forklift · brown = carried pallet · green = checker</p>
+        <div>
+          <button id="plan" class="selected" aria-pressed="true">Plan</button>
+          <button id="three" aria-pressed="false">3D camera</button>
+          <button id="overview">Overview</button>
+        </div>
+      </div>
+      <div class="paired">
+        <section class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">BEFORE</p>
+              <h2>Original loading layout</h2>
+            </div>
+            <span>Staging 24 m · checker 12 m</span>
+          </div>
+          <div id="baseline-view" class="scene">
+            <svg
+              role="img"
+              aria-label="Original loading layout and task states"
+              viewBox="-54 -28 76 42"
+            ></svg>
+            <div class="cesium" hidden></div>
+          </div>
+          <p id="baseline-counts" class="scene-caption"></p>
+          <p id="baseline-actors" class="scene-caption"></p>
+        </section>
+        <section class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">AFTER</p>
+              <h2>Closer staging & checking</h2>
+            </div>
+            <span id="proposal-label"></span>
+          </div>
+          <div id="proposal-view" class="scene">
+            <svg
+              role="img"
+              aria-label="Proposed loading layout and task states"
+              viewBox="-54 -28 76 42"
+            ></svg>
+            <div class="cesium" hidden></div>
+          </div>
+          <p id="proposal-counts" class="scene-caption"></p>
+          <p id="proposal-actors" class="scene-caption"></p>
+        </section>
+      </div>
+      <p id="render-status" class="quiet" role="status">
+        Stylized loading cutout, in metres, separate from the whole-facility
+        model. Both views use the same actual task frames. Forklifts carry a
+        pallet only after pickup completes and until dock loading finishes.
+      </p>
+      <section class="results">
+        <div class="section-title">
+          <div>
+            <p class="eyebrow">AUDIT THE FULL TRIAL</p>
+            <h2>Loading, travel and available capacity</h2>
+          </div>
+          <p id="table-window"></p>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Indicator</th>
+                <th>Before</th>
+                <th>After</th>
+                <th>Before − after</th>
+              </tr>
+            </thead>
+            <tbody id="metrics"></tbody>
+          </table>
+        </div>
+      </section>
+      <div class="details-grid">
+        <section>
+          <p class="eyebrow">PICK A MILESTONE TO SEEK</p>
+          <h2>Pallet progress</h2>
+          <div id="events" class="loading-events"></div>
+        </section>
+        <section class="assumptions">
+          <p class="eyebrow">READ BEFORE INTERPRETING</p>
+          <h2>Explicit model assumptions</h2>
+          <details open>
+            <summary>Same work and service on both sides</summary>
+            <p>
+              All pallet IDs arrive at t = 0. Two forklifts start at staging.
+              Earliest available forklift takes the next pallet, with F1 winning
+              ties. Fixed 3 m/s forklift speed and 1.5 m/s checker walking
+              speed; pickup dwell 4 s, inspection 3 s and dock loading 5 s per
+              pallet. Only staging and checker-station distances change. Check →
+              dock is always 6 m. No percentage savings is authored.
+            </p>
+          </details>
+          <details open>
+            <summary>Resources and load accounting</summary>
+            <p>
+              Each forklift remains unavailable until its empty return finishes.
+              The checker walks from their station to inspection, inspects one
+              pallet, then returns before their next task. Forklifts queue for
+              that entire resource cycle. The dock loads only one pallet at a
+              time. Picked means pickup dwell completed. Delivered means dock
+              loading completed. Staging stock + carried pallets + trailer loads
+              always equals the order.
+            </p>
+            <p>
+              Trailer completion is the last delivery, distinct from fleet
+              return completion. A full-order time delta appears only when both
+              finish within the same window. Distances and actor-seconds include
+              partial tasks clipped at the window. Forklift wait includes
+              inspection queue/wait for checker arrival and dock queue,
+              excluding pickup, inspection and loading service. Walking time
+              sums checker movement. Dock idle is unused dock capacity over the
+              fixed window; more idle after finishing early is available
+              capacity, not automatically inefficiency.
+            </p>
+          </details>
+          <details>
+            <summary>Geometry and limitations</summary>
+            <p>
+              Exact straight routes in metres connect staging → inspection →
+              dock → staging; the checker uses a perpendicular out-and-back
+              route. Forklift symbols are offset ±0.9 m from the shared metric
+              route for legibility; their paths and distances use the route
+              centreline. Stock racks are schematic. Trailer stock uses up to
+              two schematic layers of 24 pallets; no packing or weight-capacity
+              validation is modeled. Queued forklifts remain stationary with
+              explicit queue labels. Resources serialize handling, but travel
+              routes do not model traffic conflict, steering, collisions,
+              acceleration or forklift turning envelopes. The parked trailer
+              identifies the delivery point. The original reversing-truck
+              scenario remains in the facility. These are fictional inputs with
+              no calibrated customer baseline, injury prediction or financial
+              ROI.
+            </p>
+          </details>
+        </section>
+      </div>
+      <footer>
+        seeo · Fictional facility exploration · Task model, not observed
+        performance
+      </footer>
+    </main>
+    <script type="module" src="/src/seeo-demo/loading-main.js"></script>
+  </body>
+</html>

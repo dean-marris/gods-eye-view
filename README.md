@@ -2,7 +2,7 @@
 
 **Explore a facility. Test a workflow change. See the effect on movement, waiting and completed work.**
 
-A browser-based warehouse and distribution-centre demonstration built on [God’s Eye View](https://github.com/bilawalsidhu/gods-eye-view) and Cesium. It combines a complete plan/3D facility, camera context, moving people and vehicles, and an integrated before-and-after dispatch simulation.
+A browser-based warehouse and distribution-centre demonstration built on [God’s Eye View](https://github.com/bilawalsidhu/gods-eye-view) and Cesium. It combines a complete plan/3D facility, camera context, moving people and vehicles, and integrated before-and-after trailer-loading and dispatch-crossing simulations.
 
 [Open the live demo](https://seeo-facility-demo.dean501646.chatgpt.site/) · [Installation and operating guide](docs/seeo-demo.md) · [Original God’s Eye View README](README.upstream.md)
 
@@ -18,7 +18,8 @@ The demonstration helps operations and health-and-safety teams examine a propose
 | Camera context | Selectable camera markers and seven distinct AI-generated, static area images |
 | Recognizable activity | Four forklifts, seven people and an articulated truck reversing into Bay 1 in the facility replay |
 | Scenario playback | Busy shift, aisle traffic, dispatch staging and packing activity; play, pause, restart and seek |
-| Integrated dispatch experiment | Open analysis inside the facility through **Test a change**, **Review a change**, or the dispatch-area action |
+| Integrated analysis | Open **Test a change** inside the facility; switch between **Trailer loading** and **Dispatch crossing** |
+| Complete loading workflow | Pickup dwell, loaded travel, checker walking/inspection, queues, dock loading and empty return; stock moves into the trailer |
 | Before-and-after comparison | Identical seeded arrivals and trips, synchronized plan/3D views, barrier/gate controls and inspectable encounters |
 | Operational scorecard | Walking distance/time saved or added, forklift waiting, completed/unfinished trips and elapsed completion time when all work finishes |
 | Forklift load counters | Simulated loads picked, delivered and remaining, both for the full trial and at the current playback time |
@@ -34,7 +35,7 @@ The intended solution connects operational observation to a testable change:
 3. **Implement:** record the selected intervention and the date it changed.
 4. **Verify:** compare actual after-change measurements with the baseline and the simulation, accounting for workload and staffing.
 
-**Implemented today:** the fictional facility, replay, camera-style imagery and deterministic dispatch experiment. **Future integration:** customer geometry, live seeo observations, operational records and measured after-change validation. This repository is a simulation foundation, not yet a customer-calibrated production twin.
+**Implemented today:** the fictional facility, replay, camera-style imagery, deterministic crossing experiment and scheduled trailer-loading workflow. **Future integration:** customer geometry, live seeo observations, operational records and measured after-change validation. This repository is a simulation foundation, not yet a customer-calibrated production twin.
 
 ## Quick start with Docker
 
@@ -75,6 +76,7 @@ env UID="$(id -u)" GID="$(id -g)" docker compose up --build -d
 | Address | Purpose |
 | --- | --- |
 | <http://localhost:4173/seeo-demo.html> | Full seeo facility and integrated analysis — start here |
+| <http://localhost:4173/loading-comparison.html?from=local> | Direct trailer-loading comparison |
 | <http://localhost:4173/dispatch-comparison.html?from=local> | Direct dispatch comparison, with a return link to the local facility |
 | <http://localhost:4173/> | Original God’s Eye View globe |
 
@@ -88,10 +90,32 @@ These instructions build the image from source with `docker compose up --build`;
 2. Select an area or camera. Open its generated image and switch between the seven area images.
 3. Start **Busy shift**, try the other facility scenarios, or use **Watch truck dock**.
 4. Choose **Test a change**. Read the operational scorecard, then compare the two layouts with shared playback.
-5. Change demand, seed, proximity threshold or proposal settings; choose **Run comparison** to apply them. Use the encounter list to inspect an actual simulated interaction.
+5. In **Trailer loading**, change the proposed staging/checker distances, order size or trial window and rerun. Try **Use equal layout** to check parity. In **Dispatch crossing**, change demand, seed or barrier/gate settings and choose **Run comparison**; inspect encounters.
 6. Close analysis with **Back to facility** or **Escape**. The original facility and cameras remain available.
 
 ## Understand the measurements
+
+### Trailer loading: same order, different layout
+
+The new default analysis schedules the same pallet IDs through two forklifts, one checker and one loading dock. A forklift completes pickup dwell before carrying a pallet; it delivers after dock service and is unavailable for its next job until its empty return finishes. Checker walking, inspection and return are booked serially. Loading service cannot overlap at the single dock.
+
+Default assumptions: 24 pallets, a common 600-second window, forklift speed 3 m/s, walking speed 1.5 m/s, pickup 4 s, inspection 3 s and dock service 5 s. Staging-to-inspection changes from 24 m to 12 m; checker station-to-inspection changes from 12 m to 4 m. Inspection-to-dock remains 6 m.
+
+| Result | Before | Proposed | Difference |
+| --- | ---: | ---: | ---: |
+| Pallets picked / loaded | 24 / 24 | 24 / 24 | Same work |
+| Trailer fully loaded | 8 min 09 s | 5 min 22 s | **2 min 47 s faster (34.1%)** |
+| All empty returns complete | 8 min 19 s | 5 min 28 s | 2 min 51 s earlier |
+| Checker walking | 576 m | 192 m | **384 m less** |
+| Checker walking time | 6 min 24 s | 2 min 08 s | **4 min 16 s saved** |
+| Forklift travel | 1,440 m | 864 m | **576 m less** |
+| Forklift queue wait, summed | 3 min 31 s | 1 min 12 s | **2 min 19 s less** |
+
+Rounded times come from the schedule, not measured customer operations. Actor time sums across resources and is separate from elapsed trailer completion. Metrics are clipped to the same trial window; unfinished work remains visible and full-order time savings are withheld when either trailer is incomplete. Equal geometry produces equal results; a longer proposed layout can be worse. Dock unused capacity includes the rest of the fixed window after loading finishes, so faster completion does not automatically reduce that measure.
+
+These gains demonstrate **shorter staging and checker routes**, not a productivity benefit attributed to barriers. The loading model uses constant speeds and serialized resources, with schematic visual lane offsets; it does not resolve vehicle collisions, steering or congestion between travel paths.
+
+### Dispatch crossing measurements
 
 | Measure | Meaning in this prototype |
 | --- | --- |
@@ -106,7 +130,7 @@ These instructions build the image from source with `docker compose up --build`;
 
 Operational savings use **before minus after**. The scorecard labels lower values as saved, higher values as extra, and equal values as unchanged. More time or distance does not become a positive saving. Completion counts stay visible so a run does not appear efficient just because it leaves work unfinished.
 
-### Example: default normal-demand trial
+### Crossing example: default normal-demand trial
 
 Seed 42, 120-second window, 3 m centre-distance threshold; proposal uses a channel barrier and fully compliant gate.
 
@@ -130,7 +154,7 @@ This example demonstrates a trade-off: reduced simulated crossing exposure with 
 - The facility’s 40-second replay follows authored routes. Its historical fixture events do not change when a barrier is drawn. The separate dispatch experiment calculates its own trajectories and metrics.
 - The dispatch engine uses a single seeded workload and 0.1-second steps. It includes route changes, yielding, gate phases and same-lane queues, with simplified acceleration and stop-line handling.
 - It does not model validated braking distances, full collision/steering physics, forklift load dynamics or crowd avoidance.
-- Pickup/delivery counts do not include handling dwell, trailer-loading service times or a complete return-cycle model. Do not interpret them as measured loading productivity or pallets-per-hour forecasts.
+- Crossing-mode load counts assume one pallet per trip, without handling dwell or trailer service. Trailer-loading mode separately models pickup, inspection, dock service and empty returns; its capacity, speeds and service times are illustrative assumptions, not calibrated productivity forecasts.
 - No injury probabilities, guaranteed savings, annual ROI or measured customer results are claimed.
 
 ## Update, stop and verify
@@ -154,7 +178,7 @@ Restart:
 docker compose up -d
 ```
 
-Run the seeo behavior tests and build all three browser entry points:
+Run the seeo behavior tests and build all four browser entry points:
 
 ```sh
 docker compose exec -T gods-eye-view node --test 'src/seeo-demo/*.test.mjs'
@@ -168,14 +192,17 @@ The build writes `dist/`. Editing local source or building it does not automatic
 | Path | Responsibility |
 | --- | --- |
 | `seeo-demo.html` | Facility entry, camera/evidence dialogs and integrated analysis container |
+| `loading-comparison.html` | Standalone and embedded trailer-loading comparison |
 | `dispatch-comparison.html` | Standalone and embedded dispatch comparison |
 | `src/seeo-demo/main.js` / `model.js` | Facility interactions, replay integration and Cesium model |
 | `src/seeo-demo/replay.js` | Authored facility actor and truck-docking replay |
+| `src/seeo-demo/loading.js` | Deterministic resource schedule, task milestones and clipped loading metrics |
+| `src/seeo-demo/loading-main.js` / `loading-scene.js` | Loading UI, paired plan/Cesium views and pallet stock |
 | `src/seeo-demo/dispatch.js` | Renderer-independent deterministic crossing simulation |
 | `src/seeo-demo/dispatchSummary.js` | Operational summary and forklift-load accounting |
 | `src/seeo-demo/dispatch-main.js` / `dispatch-scene.js` | Comparison UI and 3D rendering |
 | `src/seeo-demo/assets/` | Seven generated camera-style images |
-| `seeo-demo.vite.config.js` | Globe + facility + comparison build entries |
+| `seeo-demo.vite.config.js` | Globe + facility + loading + crossing build entries |
 | `Dockerfile` / `compose.yaml` | Local container image and runtime setup |
 
 ## Origin and license
