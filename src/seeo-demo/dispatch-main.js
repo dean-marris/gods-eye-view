@@ -2,6 +2,7 @@ import { summarizeDispatch, signedSaving, countForkliftLoads } from "./dispatchS
 import "./dispatch.css";
 import "./pitch.css";
 import {
+  BASELINE,
   createWorkload,
   compareDispatch,
   getDispatchFrame,
@@ -24,20 +25,14 @@ const number = (x) =>
   });
 function plan(run, frame) {
   const c = run.crossing;
-  const barrier = run.config.barrier
-    ? [-4, 4]
-        .map(
-          (y) =>
-            `<path d="M-23 ${y}H7 M9 ${y}H23" stroke="#49695b" stroke-width=".22"/>`,
-        )
-        .join("")
-    : "";
+  const geometry = run.geometry;
+  const barrier = geometry.barriers.map(points => `<path d="M${points.map(p => p.join(' ')).join('L')}" fill="none" stroke="#49695b" stroke-width=".22"/>`).join('');
   const gate = run.config.gate
     ? `<text x="${c + 2}" y="-5" font-size=".65" fill="#6c6e43">${frame.gatePhase === "person" ? "PEOPLE PHASE" : frame.gatePhase === "vehicle" ? "VEHICLE PHASE" : "GATE IDLE"}</text><path d="M${c - 1} -3.8H${c + 1} M${c - 1} 3.8H${c + 1}" stroke="${frame.gatePhase === "person" ? "#7f9e41" : "#d9923b"}" opacity="${frame.gatePhase === "person" ? 0.25 : 1}" stroke-width=".25" stroke-dasharray=".4 .2"/>`
     : "";
-  const path = run.config.barrier ? "M0 -8H8V8H0" : "M0 -8V8";
-  return `<rect x="-27" y="-11" width="54" height="22" fill="#e8eeea"/><path d="M-26 -3.4H26V3.4H-26Z" fill="#d0dbd7"/><path d="M-25 0H25" stroke="#fff" stroke-width=".1" stroke-dasharray="1 1"/><path d="${path}" fill="none" stroke="#96ac75" stroke-width=".18" stroke-dasharray=".4 .3"/><rect x="${c - 1.5}" y="-3.5" width="3" height="7" fill="#e8b064" opacity=".22"/><path d="M${c - 3} -3.4V3.4 M${c + 3} -3.4V3.4" stroke="#eef3ef" stroke-width=".12"/>${barrier}${gate}<text x="-24" y="-9" font-size=".65" fill="#5f7e7a">DISPATCH · metres</text><path d="M-24 9H-19" stroke="#58736c" stroke-width=".1"/><text x="-23" y="10.2" font-size=".6" fill="#58736c">5 m</text>${frame.actors
-    .filter((a) => a.status === "active")
+  const path = `M${geometry.personPath.map(p => p.join(" ")).join("L")}`;
+  return `<rect x="${geometry.bounds.x}" y="${geometry.bounds.y}" width="${geometry.bounds.width}" height="${geometry.bounds.height}" fill="#e8eeea"/><path d="M-26 -3.4H26V3.4H-26Z" fill="#d0dbd7"/><path d="M-25 0H25" stroke="#fff" stroke-width=".1" stroke-dasharray="1 1"/><path d="${path}" fill="none" stroke="#96ac75" stroke-width=".18" stroke-dasharray=".4 .3"/>${c === null ? "" : `<rect x="${c - 1.5}" y="-3.5" width="3" height="7" fill="#e8b064" opacity=".22"/><path d="M${c - 3} -3.4V3.4 M${c + 3} -3.4V3.4" stroke="#eef3ef" stroke-width=".12"/>`}${barrier}${gate}<text x="-24" y="-9" font-size=".65" fill="#5f7e7a">DISPATCH · metres</text><path d="M-24 9H-19" stroke="#58736c" stroke-width=".1"/><text x="-23" y="10.2" font-size=".6" fill="#58736c">5 m</text>${frame.actors
+    .filter((a) => ["active", "queued"].includes(a.status))
     .map((a) => {
       const selected = highlights.includes(a.id),
         fill = selected
@@ -55,7 +50,9 @@ function draw() {
   for (const side of names) {
     const run = comparison[side],
       frame = getDispatchFrame(run, time);
-    $(`${side}-view`).querySelector("svg").innerHTML = plan(run, frame);
+    const svg = $(`${side}-view`).querySelector("svg"), bounds = run.geometry.bounds;
+    svg.setAttribute("viewBox", `${bounds.x} ${bounds.y} ${bounds.width} ${bounds.height}`);
+    svg.innerHTML = plan(run, frame);
     renderers[side]?.update(frame, highlights);
     const counts = ["active", "queued", "complete", "pending"].map(
       (status) => frame.actors.filter((a) => a.status === status).length,
@@ -63,7 +60,7 @@ function draw() {
     const loads = countForkliftLoads(frame);
     $(`${side}-loads`).textContent = `Simulated loads picked / delivered: ${loads.picked} / ${loads.delivered} · ${loads.remaining} remaining to deliver at ${time.toFixed(1)} s (includes queued/future trips)`;
     $(`${side}-live`).textContent =
-      `${counts[0]} moving / waiting in scene · ${counts[1]} arrival-queued · ${counts[2]} completed · ${counts[3]} future arrivals`;
+      `${frame.actors.filter(a => a.status === "active" && a.speed >= .1).length} moving · ${frame.actors.filter(a => a.status === "active" && a.speed < .1).length} stopped in scene · ${counts[1]} arrival-queued · ${counts[2]} completed · ${counts[3]} future arrivals`;
     $(`${side}-view`).dataset.time = frame.time;
   }
   $("play").textContent = playing ? "Pause" : "Play";
@@ -181,14 +178,25 @@ function results() {
     $("encounters").append(button);
   }
 }
+function routeControls() {
+  const bypass = $("settings").elements.routeMode.value === "bypass";
+  const speed = $("settings").elements.speed;
+  if (bypass) speed.value = String(BASELINE.speed);
+  speed.disabled = bypass;
+  for (const name of ["barrier", "gate", "yielding", "compliance"]) $("settings").elements[name].disabled = bypass;
+  $("route-help").textContent = bypass ? "Bypass: 76 m walk versus 16 m direct. Continuous protection; no shared crossing or gate. Forklift speed fixed at 3 m/s on both sides; gate / yield controls do not apply. Illustrative concept, not site egress design." : "Legacy crossing experiment: choose direct or channelled crossing, gate and yielding behavior below.";
+}
+$("settings").elements.routeMode.addEventListener("change", routeControls);
 function run() {
+  routeControls();
   const f = new FormData($("settings")),
     proposal = {
+      routeMode: f.get("routeMode"),
       barrier: f.has("barrier"),
       gate: f.has("gate"),
-      speed: +f.get("speed"),
-      yielding: +f.get("yielding"),
-      compliance: +f.get("compliance"),
+      speed: +$("settings").elements.speed.value,
+      yielding: +$("settings").elements.yielding.value,
+      compliance: +$("settings").elements.compliance.value,
     };
   comparison = compareDispatch({
     workload: createWorkload({ seed: +f.get("seed"), demand: f.get("demand") }),
@@ -199,9 +207,9 @@ function run() {
   time = 0;
   highlights = [];
   $("run-status").textContent =
-    `Trial applied · seed ${f.get("seed")} · ${comparison.baseline.jobs.length} identical jobs per side · centre threshold ${f.get("threshold")} m · 120 s / 0.1 s steps · proposal ${proposal.speed} m/s, ${proposal.yielding * 100}% ungated yield, ${proposal.compliance * 100}% gate compliance.`;
+    `Trial applied · seed ${f.get("seed")} · ${comparison.baseline.jobs.length} identical jobs per side · centre threshold ${f.get("threshold")} m · 120 s / 0.1 s steps · proposal ${proposal.speed} m/s${proposal.routeMode === "bypass" ? "; protected bypass, gate / yield not applicable" : `, ${proposal.yielding * 100}% ungated yield, ${proposal.compliance * 100}% gate compliance`}.`;
   $("proposal-label").textContent =
-    `${proposal.barrier ? "Channel barrier" : "Direct route"} · ${proposal.gate ? "gate on" : "gate off"}`;
+    proposal.routeMode === "bypass" ? "Protected pedestrian bypass · no shared crossing / gate" : `${proposal.barrier ? "Channel barrier" : "Direct route"} · ${proposal.gate ? "gate on" : "gate off"}`;
   for (const side of names) renderers[side]?.configure(comparison[side]);
   results();
   draw();

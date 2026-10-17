@@ -46,28 +46,33 @@ export function compareDispatch({
       workload,
       duration,
       threshold,
-      config: { ...BASELINE, ...proposal },
+      // The bypass trial isolates routing; legacy experiments may vary speed.
+      config: { ...BASELINE, ...proposal, ...(proposal.routeMode === "bypass" ? {speed: BASELINE.speed} : {}) },
     }),
   };
 }
-function route(job, barrier) {
+export function dispatchGeometry(config = {}) {
+  const bypass = config.routeMode === "bypass";
+  const personPath = bypass ? [[0, -8], [30, -8], [30, 8], [0, 8]] : config.barrier ? [[0, -8], [8, -8], [8, 8], [0, 8]] : [[0, -8], [0, 8]];
+  // Locate an actual transverse path segment in the bounded forklift corridor.
+  // The perimeter segment at x=30 has no intersection and hence no mixed zone.
+  const transverse = personPath.find((p, i) => i > 0 && p[0] === personPath[i - 1][0] && Math.min(p[1], personPath[i-1][1]) < -3.4 && Math.max(p[1], personPath[i-1][1]) > 3.4 && Math.abs(p[0]) <= 25.5 + .35);
+  const crossing = transverse?.[0] ?? null;
+  return {
+    bounds: { x: -28, y: -12, width: 62, height: 24 },
+    crossing,
+    personPath,
+    barriers: bypass ? [[[-26, -4], [27, -4], [27, 4], [-26, 4]]] : config.barrier ? [[[-23, -4], [7, -4]], [[9, -4], [23, -4]], [[-23, 4], [7, 4]], [[9, 4], [23, 4]]] : [],
+  };
+}
+function route(job, config) {
   const d = job.direction;
   return job.kind === "vehicle"
     ? [
         [-24 * d, -1.6 * d],
         [24 * d, -1.6 * d],
       ]
-    : barrier
-      ? [
-          [0, -8 * d],
-          [8, -8 * d],
-          [8, 8 * d],
-          [0, 8 * d],
-        ]
-      : [
-          [0, -8 * d],
-          [0, 8 * d],
-        ];
+    : dispatchGeometry(config).personPath.map(([x, y]) => [x, y * d]);
 }
 function pointAt(points, distance) {
   for (let i = 1; i < points.length; i++) {
@@ -92,8 +97,9 @@ export function simulateDispatch({
   threshold = 3,
 } = {}) {
   const c = {
-    barrier: !!config.barrier,
-    gate: !!config.gate,
+    routeMode: config.routeMode === "bypass" ? "bypass" : "crossing",
+    barrier: config.routeMode === "bypass" || !!config.barrier,
+    gate: config.routeMode !== "bypass" && !!config.gate,
     speed: finite(config.speed, 3, 0.5, 5),
     yielding: finite(config.yielding, 0.35, 0, 1),
     compliance: finite(config.compliance, 1, 0, 1),
@@ -108,9 +114,10 @@ export function simulateDispatch({
     obedience: finite(j.obedience, 0, 0, 1),
     yieldDecision: finite(j.yieldDecision, 0, 0, 1),
   }));
-  const crossing = c.barrier ? 8 : 0;
+  const geometry = dispatchGeometry(c);
+  const crossing = geometry.crossing;
   const actors = jobs.map((j) => {
-    const path = route(j, c.barrier),
+    const path = route(j, c),
       length = path
         .slice(1)
         .reduce(
@@ -119,11 +126,11 @@ export function simulateDispatch({
         );
     // Conservative circular footprints: loaded forklift radius 1.5 m, pedestrian 0.35 m.
     const radius = j.kind === "vehicle" ? 1.5 : 0.35;
-    const entry =
+    const entry = crossing === null ? Infinity :
       j.kind === "vehicle"
         ? 24 + crossing * j.direction - 1.5 - radius
         : (c.barrier ? 8 : 0) + 8 - 3.5 - radius;
-    const exit =
+    const exit = crossing === null ? Infinity :
       j.kind === "vehicle"
         ? 24 + crossing * j.direction + 1.5 + radius
         : (c.barrier ? 8 : 0) + 8 + 3.5 + radius;
@@ -150,6 +157,7 @@ export function simulateDispatch({
       kind: a.kind,
       ...pointAt(a.path, a.s),
       status: a.status,
+      speed: a.speed,
       distance: a.s,
       waiting: a.waiting,
       inConflict: a.status === "active" && a.s > a.entry && a.s < a.exit,
@@ -237,6 +245,7 @@ export function simulateDispatch({
     duration,
     threshold,
     crossing,
+    geometry,
     frames,
     metrics: measureTrajectories(frames, { threshold, jobs }),
   };

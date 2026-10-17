@@ -19,8 +19,8 @@
           <p class="eyebrow">FICTIONAL DISPATCH BAY / TEST A CHANGE</p>
           <h1>Same shift. Two possibilities.</h1>
           <p>
-            Channel people through a crossing. Test the gate. See the exposure
-            and delay tradeoff in the same seeded workload.
+            Route people around the forklift lane. Compare extra walking against
+            forklift waiting using the same seeded workload.
           </p>
         </div>
         <div class="trial-badge">
@@ -66,6 +66,8 @@
         </fieldset>
         <fieldset>
           <legend>Proposed change</legend>
+          <label>Pedestrian route<select name="routeMode"><option value="bypass" selected>Protected perimeter bypass</option><option value="crossing">Legacy crossing experiment</option></select></label>
+          <p id="route-help">Bypass: 76 m walk versus 16 m direct. Continuous protection; no shared crossing or gate. Illustrative concept, not site egress design.</p>
           <label class="check"
             ><input name="barrier" type="checkbox" checked />Channel
             barrier</label
@@ -149,7 +151,7 @@
             <svg
               aria-label="Current dispatch movement"
               role="img"
-              viewBox="-28 -12 56 24"
+              viewBox="-28 -12 62 24"
             ></svg>
             <div class="cesium" hidden></div>
           </div>
@@ -160,7 +162,7 @@
           <div class="panel-heading">
             <div>
               <p class="eyebrow">AFTER</p>
-              <h2>Proposed crossing</h2>
+              <h2>Proposed route</h2>
             </div>
             <span id="proposal-label"></span>
           </div>
@@ -168,7 +170,7 @@
             <svg
               aria-label="Proposed dispatch movement"
               role="img"
-              viewBox="-28 -12 56 24"
+              viewBox="-28 -12 62 24"
             ></svg>
             <div class="cesium" hidden></div>
           </div>
@@ -245,26 +247,31 @@
             <p>
               Baseline: direct crossing at x = 0 m, forklift limit 3 m/s, 35% of
               vehicles yield, no gate. Proposal settings never edit the
-              baseline. A disabled barrier and gate with the baseline
-              speed/yielding settings gives identical runs.
+              baseline. In Legacy crossing experiment, disabling the barrier and gate
+              with baseline speed/yielding settings gives identical runs.
             </p>
             <p>
-              Barrier rails at y = ±4 m channel people to the 2 m opening at x =
-              8 m. Both directions retain their original destinations. Vehicle
+              Default protected bypass: people walk from (0, −8) via (30, −8)
+              and (30, 8) to (0, 8), reversed for opposite trips: 76 m instead
+              of 16 m. Continuous rails at y = ±4 m and x = 27 m separate
+              this route from forklift travel; there is no shared crossing or gate.
+              Legacy channel barriers instead lead to the opening at x = 8 m.
+              Both directions retain their original destinations. Vehicle
               lanes are y = ±1.6 m. Conservative circular footprints: people
               radius 0.35 m; loaded forklifts radius 1.5 m. The conflict area is
               the crossing strip x = crossing ±1.5 m, y = ±3.5 m, buffered by
               each actor’s radius.
             </p>
             <p>
-              A compliant gate selects the longest-waiting approaching kind,
+              In crossing experiments, a compliant gate selects the longest-waiting approaching kind,
               then holds that phase until its buffered zone clears. Noncompliant
               actors explicitly ignore this gate; the barrier still channels
               them. Without a gate, the yielding fraction stops vehicles for
               approaching people. The same seeded per-actor decisions are
               reused. Same-lane followers retain footprint clearance; arrivals
-              queue off-scene until that clearance is available and their queue
-              wait is counted.
+              queue at the entrance until that clearance is available and their queue
+              wait is counted. Multiple queued actors share the entrance marker;
+              the caption retains their full count.
             </p>
             <p>
               People limit 1.35 m/s; vehicles use the selected limit.

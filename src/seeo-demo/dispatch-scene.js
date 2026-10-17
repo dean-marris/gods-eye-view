@@ -1,4 +1,5 @@
 import * as C from "cesium";
+import { createDispatchPose } from "./dispatchPose.js";
 // Dedicated local dispatch scene: exactly the engine's metres and crossing geometry.
 export function createDispatchScene(container, initialRun) {
   const viewer = new C.Viewer(container, {
@@ -53,6 +54,20 @@ export function createDispatchScene(container, initialRun) {
       },
     });
   }
+  // Nonconstant pose properties keep moving boxes/ellipsoids on Cesium's
+  // dynamic updater instead of rebuilding asynchronous constant primitives.
+  function dynamic(entity) {
+    const pose = { position: entity.position.getValue(C.JulianDate.now()), orientation: entity.orientation?.getValue(C.JulianDate.now()) };
+    entity.position = new C.CallbackPositionProperty(() => pose.position, false);
+    entity.orientation = new C.CallbackProperty(() => pose.orientation, false);
+    entity.dispatchPose = pose;
+    return entity;
+  }
+  function place(entity, actor, dx, dy, z) {
+    const local = (entity.dispatchLocalPose ??= createDispatchPose()).update(actor, dx, dy, z);
+    entity.dispatchPose.position = point(local.x, local.y, local.z);
+    entity.dispatchPose.orientation = C.Transforms.headingPitchRollQuaternion(entity.dispatchPose.position, new C.HeadingPitchRoll(local.heading, 0, 0));
+  }
   function line(points, fill, width = 2) {
     return viewer.entities.add({
       polyline: {
@@ -65,11 +80,11 @@ export function createDispatchScene(container, initialRun) {
   function camera(angle = currentAngle) {
     currentAngle = angle;
     viewer.camera.lookAt(
-      point(angle === "crossing" ? run.crossing : 1, 0, 0),
+      point(angle === "crossing" ? (run.crossing ?? 27) : 3, 0, 0),
       new C.HeadingPitchRange(
         C.Math.toRadians(angle === "crossing" ? 28 : -20),
         C.Math.toRadians(angle === "crossing" ? -25 : -58),
-        angle === "crossing" ? 28 : 52,
+        angle === "crossing" ? 35 : 68,
       ),
     );
     viewer.scene.requestRender();
@@ -79,9 +94,10 @@ export function createDispatchScene(container, initialRun) {
     viewer.entities.removeAll();
     parts.clear();
     gates.length = 0;
-    box(0, 0, 54, 22, 0.05, "#dce6df", -0.1);
+    const bounds = run.geometry.bounds;
+    box(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2, bounds.width, bounds.height, 0.05, "#dce6df", -0.1);
     box(0, 0, 52, 6.8, 0.04, "#aebfb7");
-    box(run.crossing, 0, 3, 7, 0.03, "#d9bc82", 0.05);
+    if (run.crossing !== null) box(run.crossing, 0, 3, 7, 0.03, "#d9bc82", 0.05);
     for (let x = -24; x < 25; x += 3)
       line(
         [
@@ -92,18 +108,16 @@ export function createDispatchScene(container, initialRun) {
       );
     for (const y of [-8, 8]) {
       box(-13, y, 8, 2, 1.6, "#c3cec4");
-      box(18, y, 6, 2, 1.6, "#c3cec4");
+      box(18, run.config.routeMode === "bypass" ? Math.sign(y) * 10.5 : y, 6, 2, 1.6, "#c3cec4");
     }
-    if (run.config.barrier)
-      for (const y of [-4, 4])
-        for (const [x, width] of [
-          [-8, 30],
-          [16, 14],
-        ]) {
-          box(x, y, width, 0.15, 0.15, "#748c54", 0.75);
-          for (let xx = x - width / 2; xx <= x + width / 2; xx += 2)
-            box(xx, y, 0.13, 0.13, 1, "#748c54");
-        }
+    for (const points of run.geometry.barriers) {
+      for (let i = 1; i < points.length; i++) {
+        const [x, y] = points[i - 1], [xx, yy] = points[i];
+        box((x + xx) / 2, (y + yy) / 2, Math.abs(xx - x) || .15, Math.abs(yy - y) || .15, .15, "#748c54", .75);
+        const length = Math.hypot(xx - x, yy - y), steps = Math.ceil(length / 2);
+        for (let j = 0; j <= steps; j++) box(x + (xx-x)*j/steps, y+(yy-y)*j/steps, .13, .13, 1, "#748c54");
+      }
+    }
     if (run.config.gate)
       for (const y of [-3.8, 3.8]) {
         box(run.crossing - 1, y, 0.16, 0.16, 1.2, "#d69b40");
@@ -112,18 +126,7 @@ export function createDispatchScene(container, initialRun) {
           arm: box(run.crossing, y, 2, 0.12, 0.12, "#d69b40", 0.9),
         });
       }
-    const path = run.config.barrier
-      ? [
-          [0, -8],
-          [8, -8],
-          [8, 8],
-          [0, 8],
-        ]
-      : [
-          [0, -8],
-          [0, 8],
-        ];
-    line(path, "#809b50", 2);
+    line(run.geometry.personPath, "#809b50", 3);
     for (const job of run.jobs) {
       const person = job.kind === "person",
         radius = person ? 0.35 : 1.5;
@@ -176,6 +179,7 @@ export function createDispatchScene(container, initialRun) {
           disableDepthTestDistance: Infinity,
         },
       });
+      for (const entity of [body, head, label, ...extras.map(e => e.entity)]) dynamic(entity);
       parts.set(job.id, { body, head, ring, label, radius, extras });
     }
     camera();
@@ -193,7 +197,7 @@ export function createDispatchScene(container, initialRun) {
     }
     for (const actor of frame.actors) {
       const p = parts.get(actor.id),
-        show = actor.status === "active",
+        show = ["active", "queued"].includes(actor.status),
         selected = highlights.includes(actor.id);
       for (const entity of [
         p.body,
@@ -205,26 +209,10 @@ export function createDispatchScene(container, initialRun) {
         entity.show = show;
       if (!show) continue;
       const person = actor.kind === "person";
-      p.body.position = point(actor.x, actor.y, person ? 0.8 : 0.6);
-      p.head.position = point(actor.x, actor.y, person ? 1.75 : 1.525);
-      if (!person)
-        for (const entity of [p.body, p.head])
-          entity.orientation = C.Transforms.headingPitchRollQuaternion(
-            point(actor.x, actor.y),
-            new C.HeadingPitchRoll(-actor.heading, 0, 0),
-          );
-      for (const { entity, dx, dy, z } of p.extras) {
-        entity.position = point(
-          actor.x + Math.cos(actor.heading) * dx - Math.sin(actor.heading) * dy,
-          actor.y + Math.sin(actor.heading) * dx + Math.cos(actor.heading) * dy,
-          z,
-        );
-        entity.orientation = C.Transforms.headingPitchRollQuaternion(
-          point(actor.x, actor.y),
-          new C.HeadingPitchRoll(-actor.heading, 0, 0),
-        );
-      }
-      p.label.position = point(actor.x, actor.y, 2.5);
+      place(p.body, actor, 0, 0, person ? .8 : .6);
+      place(p.head, actor, 0, 0, person ? 1.75 : 1.525);
+      for (const {entity, dx, dy, z} of p.extras) place(entity, actor, dx, dy, z);
+      place(p.label, actor, 0, 0, 2.5);
       p.ring.polyline.positions = Array.from({ length: 33 }, (_, i) =>
         point(
           actor.x + Math.cos((i * Math.PI) / 16) * p.radius,
@@ -232,12 +220,15 @@ export function createDispatchScene(container, initialRun) {
           0.12,
         ),
       );
+      if (p.selected !== selected) {
       p.ring.polyline.material = color(selected ? "#df4e45" : "#4d7565");
       p.ring.polyline.width = selected ? 4 : 1.5;
       const shape = person ? p.body.ellipsoid : p.body.box;
       shape.material = color(
         selected ? "#df4e45" : person ? "#b5cf49" : "#dba24d",
       );
+      p.selected = selected;
+      }
     }
     viewer.scene.requestRender();
   }

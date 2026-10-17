@@ -182,3 +182,54 @@ test("gate exclusion holds in both direct and channelled peak trials at full com
     assert.equal(run.metrics.completed + run.metrics.backlog, 60);
   }
 });
+
+test("protected bypass preserves endpoints, walks 76 metres and keeps footprints outside forklift corridor", () => {
+  const workload = createWorkload({ demand: "low" });
+  const { baseline, proposal } = compareDispatch({ workload, proposal: { routeMode: "bypass", barrier: true, gate: true } });
+  assert.deepEqual(proposal.jobs, baseline.jobs);
+  for (const job of proposal.jobs.filter(j => j.kind === "person")) {
+    const first = proposal.frames[0].actors.find(a => a.id === job.id);
+    const last = proposal.frames.at(-1).actors.find(a => a.id === job.id);
+    assert.deepEqual([first.x, first.y], [0, -8 * job.direction]);
+    assert.deepEqual([last.x, last.y], [0, 8 * job.direction]);
+    assert.equal(last.distance, 76);
+    for (const frame of proposal.frames) {
+      const a = frame.actors.find(a => a.id === job.id);
+      assert.ok(Math.abs(a.y) - .35 > 3.4 || a.x - .35 > 25.5);
+      assert.equal(a.inConflict, false);
+    }
+  }
+  assert.equal(proposal.config.gate, false);
+  assert.equal(proposal.metrics.coOccupancySeconds, 0);
+  assert.ok(proposal.metrics.distance > baseline.metrics.distance);
+});
+
+test("bypass removes pedestrian delay while retaining arrival and following queues and baseline invariance", () => {
+  for (const demand of ["low", "normal", "peak"]) {
+    const workload = createWorkload({ demand });
+    const pair = compareDispatch({ workload, duration: 30, proposal: { routeMode: "bypass", yielding: 1 } });
+    const vehicles = simulateDispatch({ workload: workload.filter(j => j.kind === "vehicle"), duration: 30, config: { routeMode: "bypass", yielding: 1 } });
+    assert.equal(pair.proposal.metrics.vehicleWaiting, vehicles.metrics.vehicleWaiting);
+    assert.deepEqual(pair.baseline, compareDispatch({ workload, duration: 30 }).baseline);
+    assert.equal(pair.proposal.metrics.completed + pair.proposal.metrics.backlog, workload.length);
+    assert.ok(pair.proposal.metrics.backlog > 0);
+  }
+  const workload = Array.from({ length: 8 }, (_, i) => ({id: `F${i}`, kind: "vehicle", arrival: 0, direction: 1}));
+  const run = simulateDispatch({ workload, config: {routeMode: "bypass"} });
+  assert.ok(run.metrics.vehicleWaiting > 0);
+  for (const f of run.frames) {
+    const active = f.actors.filter(a => a.status === "active");
+    for (let i = 1; i < active.length; i++) assert.ok(Math.abs(active[i].x - active[i - 1].x) >= 3.5 - 1e-8);
+  }
+});
+
+test("controlled bypass comparison retains baseline forklift speed even after a legacy speed edit", () => {
+  const workload = createWorkload();
+  const requested = compareDispatch({workload, proposal: {routeMode: "bypass", speed: 5}});
+  const controlled = compareDispatch({workload, proposal: {routeMode: "bypass"}});
+  assert.equal(requested.baseline.config.speed, 3);
+  assert.equal(requested.proposal.config.speed, requested.baseline.config.speed);
+  assert.deepEqual(requested, controlled);
+  assert.equal(simulateDispatch({workload, config: {routeMode: "bypass", speed: 5}}).config.speed, 5);
+  assert.equal(compareDispatch({workload, proposal: {routeMode: "crossing", speed: 5}}).proposal.config.speed, 5);
+});
