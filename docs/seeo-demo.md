@@ -151,7 +151,7 @@ For native development, use the same Node and Vite commands without `docker comp
 
 The explicit `seeo-demo.vite.config.js` matters: the upstream default `npm run build` is aimed at the globe. The seeo configuration emits all four HTML entry points into `dist/`.
 
-Tests cover deterministic workload parity, baseline invariance, crossing/gate behavior, exposure and distance accounting, unfinished work, signed savings, load milestones, replay/truck motion, selection and framing helpers. Loading tests also cover independent single-pallet accounting, resource non-overlap, pickup/delivery/return milestones, equal and worse layouts, conservation, partial windows and invalid inputs. Productivity graph tests cover exact delivery steps, clipped interval curves, signed benefits, shared domains and censored completion. Fusion tests cover shared availability, explicit picks, source-network-hub endpoints, deterministic finite packet positions and camera/PLC/sensor dropout contributions. The latest feature verification passed 44 tests; this is the seeo suite, not a claim that every upstream QA workflow was run.
+Tests cover deterministic workload parity, baseline invariance, crossing/gate behavior, exposure and distance accounting, unfinished work, signed savings, load milestones, replay/truck motion, selection and framing helpers. Loading tests also cover independent single-pallet accounting, resource non-overlap, pickup/delivery/return milestones, equal and worse layouts, conservation, partial windows and invalid inputs. Productivity graph tests cover exact delivery steps, clipped interval curves, signed benefits, shared domains and censored completion. Fusion tests cover shared availability, explicit picks, source-network-hub endpoints, deterministic finite packet positions and camera/PLC/sensor dropout contributions. The latest feature verification passed 51 tests; this is the seeo suite, not a claim that every upstream QA workflow was run.
 
 ## Storage, secrets and portability
 
@@ -192,3 +192,11 @@ The facility replay, crossing experiment, loading schedule and renderers are sep
 See the [source map](../README.md#source-map), [facility brief](seeo-facility-scenario.md), [replay brief](seeo-replay-brief.md) and [upstream documentation](../README.upstream.md).
 
 The loading expansion now includes pickup/handling dwell, dock service, complete return cycles and order conservation. Future work includes calibrated trailer capacity and loading constraints, congestion/steering physics, customer geometry and cameras, operational records, observed baseline/after periods and validation of predictions against measured results. Customer calibration and live seeo ingestion remain future integrations.
+
+## Separated main-facility flow
+
+The default **Proposed flow** gives seven people a protected perimeter connection, including an employee-entrance approach, while four forklifts use distinct work circuits. Explicit pickup/drop-off dwell, loaded transfer and empty return explain the movement. Plan and 3D share route geometry. The 200-second cycle repeats without stopping all vehicles at the end of the original crossing clip; reduced-motion preference starts it paused.
+
+**Original crossing**, **Original event · 20s** and **Watch truck dock** preserve the original 40-second context. Evidence replay runs independently with the main view paused. Camera images and historical sample markers describe the original layout. The proposed truck is docked and Fusion shows corresponding authored door/bay context.
+
+This is a layout illustration, not a throughput scheduler or customer-calibrated route design. Existing loading/dispatch metrics are separate and unchanged. Tests sample the whole proposed cycle for footprint clearance, route continuity, carrying states, replay controls and context agreement; they do not certify real-world collision avoidance.

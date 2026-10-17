@@ -18,7 +18,7 @@ The demonstration helps operations and health-and-safety teams examine a propose
 | Sensor fusion layer | Animated camera, conveyor PLC and sensor signals through an illustrative Wi-Fi/site network into a central seeo Fusion hub, in Plan and 3D |
 | Camera context | Selectable camera markers and seven distinct AI-generated, static area images |
 | Recognizable activity | Four forklifts, seven people and an articulated truck reversing into Bay 1 in the facility replay |
-| Scenario playback | Busy shift, aisle traffic, dispatch staging and packing activity; play, pause, restart and seek |
+| Scenario playback | Default separated people/forklift work flow, protected perimeter route and repeating pickup/drop-off circuits; original crossing and truck docking remain selectable |
 | Integrated analysis | Open **Test a change** inside the facility; switch between **Trailer loading** and **Dispatch crossing** |
 | Interactive productivity graph | Before/proposed progress curves linked to the replay, with selectable loads, walking, travel and queue measures; proposed-layout graphic explains the changes |
 | Complete loading workflow | Pickup dwell, loaded travel, checker walking/inspection, queues, dock loading and empty return; stock moves into the trailer |
@@ -98,7 +98,7 @@ These instructions build the image from source with `docker compose up --build`;
 
 1. Open the facility, switch between **Plan** and **3D model**, and use **Fit whole site**. Explore the **Sensor fusion** layer: inspect a camera, conveyor PLC, sensor, network hop or the central hub. Pause flow or hide the layer to inspect the underlying facility.
 2. Select an area or camera. Open its generated image and switch between the seven area images.
-3. Start **Busy shift**, try the other facility scenarios, or use **Watch truck dock**.
+3. Explore **Proposed flow**: four distinct forklift circuits with pickup/drop-off dwell, loaded travel and empty returns; people use a protected perimeter connection. It repeats over 200 seconds and starts paused when reduced motion is preferred. Switch to **Original crossing** for the historical 40-second replay, or use **Watch truck dock**.
 4. Choose **Test a change**. Explore the productivity graph: switch measures, select a time to seek both scenes, and inspect the proposed layout changes. Then compare the two layouts with shared playback.
 5. In **Trailer loading**, change the proposed staging/checker distances, order size or trial window and rerun. Try **Use equal layout** to check parity. In **Dispatch crossing**, change demand, seed or barrier/gate settings and choose **Run comparison**; inspect encounters.
 6. Close analysis with **Back to facility** or **Escape**. The original facility and cameras remain available.
@@ -163,7 +163,7 @@ This example demonstrates a trade-off: reduced simulated crossing exposure with 
 
 - The site, routes, people, vehicles, events, camera positions and images are fictional.
 - Camera images are static AI-generated illustrations, not live feeds or synchronized simulation evidence. Camera coverage shapes are illustrative, not detection guarantees.
-- The facility’s 40-second replay follows authored routes. Its historical fixture events do not change when a barrier is drawn. The separate dispatch experiment calculates its own trajectories and metrics.
+- The default main facility uses an authored 200-second repeating **Proposed flow**, with protected perimeter pedestrian movement and separate forklift work circuits. It illustrates layout separation, without calculating new savings or certifying safety. **Original crossing** retains the original 40-second event and docking replay. Camera stills and sample events describe original-layout fixtures. The separate dispatch and loading experiments retain their own trajectories and metrics.
 - The dispatch engine uses a single seeded workload and 0.1-second steps. It includes route changes, yielding, gate phases and same-lane queues, with simplified acceleration and stop-line handling.
 - It does not model validated braking distances, full collision/steering physics, forklift load dynamics or crowd avoidance.
 - Crossing-mode load counts assume one pallet per trip, without handling dwell or trailer service. Trailer-loading mode separately models pickup, inspection, dock service and empty returns; its capacity, speeds and service times are illustrative assumptions, not calibrated productivity forecasts.
@@ -207,6 +207,8 @@ The build writes `dist/`. Editing local source or building it does not automatic
 | `loading-comparison.html` | Standalone and embedded trailer-loading comparison |
 | `dispatch-comparison.html` | Standalone and embedded dispatch comparison |
 | `src/seeo-demo/main.js` / `model.js` | Facility interactions, replay integration and Cesium model |
+| `src/seeo-demo/facilityFlow.js` | Shared proposed routes, pedestrian/barrier geometry, work tasks and repeating playback |
+| `src/seeo-demo/forkliftAssembly.js` | Renderer parts with explicit fork/load visibility roles |
 | `src/seeo-demo/fusion.js` / `fusion-view.js` | Simulated source catalog, network paths, packet frames and fused context; Plan/inspector presentation |
 | `src/seeo-demo/replay.js` | Authored facility actor and truck-docking replay |
 | `src/seeo-demo/loading.js` | Deterministic resource schedule, task milestones and clipped loading metrics |

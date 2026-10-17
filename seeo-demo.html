@@ -82,7 +82,7 @@
           </div>
           <p id="scenario-caption" class="scenario-caption">
             SIMULATED · 4 forklifts · 7 people · 1 truck &amp; trailer · select
-            a scenario or camera
+            Proposed repeating work circuits · protected perimeter
           </p>
           <div class="layer-toolbar">
             <label
@@ -92,19 +92,20 @@
               ><input type="checkbox" id="show-coverage" />Estimated camera
               view</label
             ><label
-              ><input type="checkbox" id="show-proposal" />Proposed
-              barrier</label
+              ><input type="checkbox" id="show-proposal" />Extra barrier
+              option</label
             >
           </div>
           <section class="replay-panel" aria-label="Simulated crossing replay">
             <div class="replay-header">
               <div>
-                <p class="eyebrow">SIMULATED ROUTES · EX-003</p>
-                <h3>Forklift meets picker at dispatch</h3>
+                <p class="eyebrow">AUTHORED FACILITY MOVEMENT</p>
+                <h3 id="flow-title">Separated people &amp; forklift flow</h3>
               </div>
               <span class="simulation-pill">SIMULATION</span>
             </div>
 
+            <div class="replay-controls" role="group" aria-label="Main facility flow mode"><button data-flow-mode="proposed" aria-pressed="true">Proposed flow</button><button data-flow-mode="original" aria-pressed="false">Original crossing</button></div>
             <div class="replay-controls">
               <button
                 id="replay-play"
@@ -114,7 +115,7 @@
                 ▶ Play</button
               ><button id="replay-reset" aria-label="Restart simulated replay">
                 ↺ Restart</button
-              ><button id="replay-event">Jump to event</button
+              ><button id="replay-event">Original event · 20s</button
               ><label class="speed-label"
                 >Speed
                 <select id="replay-speed" aria-label="Replay speed">
@@ -138,6 +139,7 @@
                 >00:00 / 00:40</output
               >
             </div>
+            <div id="work-status" class="work-status" aria-label="Forklift work tasks"></div>
             <div class="replay-summary">
               <span id="replay-phase">Approaching the crossing</span
               ><span id="replay-separation">Model-space separation: —</span>
@@ -146,14 +148,11 @@
             <details class="replay-help">
               <summary>About this simulation</summary>
               <p class="replay-intro">
-                FL-01 carries a pallet out of storage as P-01 walks towards
-                dispatch. Scrub the same moment in plan, 3D and the evidence
-                schematic.
+                Proposed flow repeats four distinct forklift work circuits while seven people use the protected perimeter between facility sides. The truck remains docked. Original crossing restores the 40-second event and docking replay.
               </p>
               <p class="replay-disclaimer">
                 Authored paths, not live tracking. Distances come from this
-                fictional model. The proposed barrier does not reroute this
-                historical simulation.
+                fictional model. Proposed movement is an authored layout illustration, not measured performance, safety certification or a new productivity result. Original-layout samples remain historical fixtures.
               </p>
             </details>
           </section>
@@ -205,7 +204,7 @@
             <div
               id="timeline"
               class="timeline"
-              aria-label="Sample event timeline"
+              aria-label="Original-layout sample event timeline"
             ></div>
             <div class="time-labels">
               <span>06:00</span><span>08:00</span><span>10:00</span

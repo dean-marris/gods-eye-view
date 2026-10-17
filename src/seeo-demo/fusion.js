@@ -27,11 +27,11 @@ export function fusionPathPoint(id, phase) {
  const start=phase<=.5?source.position:network.position,end=phase<=.5?network.position:fusionHub.position;
  return start.map((v,i)=>v+(end[i]-v)*t+(i===2?Math.sin(Math.PI*t)*3:0));
 }
-export function fusionSnapshot(seconds, excluded=[]) {
- const time=Number.isFinite(seconds)?Math.max(0,Math.min(40,seconds)):0;
- const truck=getReplayFrame(time).actors.find(a=>a.id==='TR-01');
+export function fusionSnapshot(seconds, excluded=[], mode="original") {
+ const time=Number.isFinite(seconds)?Math.max(0,Math.min(mode==="proposed"?200:40,seconds)):0;
+ const truck=getReplayFrame(mode==="proposed"?40:time).actors.find(a=>a.id==='TR-01');
  const available=fusionSources.filter(s=>s.available&&!excluded.includes(s.id));
- const readings={C05:`Truck ${truck.motion}`, DOOR:time>=20?'Door open':'Door closed',BAY:time>=20?'Bay occupied':'Bay clear', 'PLC-R':'Conveyor running · 0.6 m/s','PLC-P':time<30?'Conveyor running · 0.4 m/s':'Conveyor idle',EYE:Math.floor(time)%4<2?'Carton present':'Beam clear'};
+ const readings={C05:`Truck ${truck.motion}`, DOOR:mode==='proposed'||time>=20?'Door open':'Door closed',BAY:mode==='proposed'||time>=20?'Bay occupied':'Bay clear', 'PLC-R':'Conveyor running · 0.6 m/s','PLC-P':time<30?'Conveyor running · 0.4 m/s':'Conveyor idle',EYE:Math.floor(time)%4<2?'Carton present':'Beam clear'};
  const required=['C05','DOOR','BAY'];
  const missing=required.filter(id=>!available.some(s=>s.id===id));
  return {time, active:available.length, unavailable:fusionSources.filter(s=>!s.available).length, excluded:fusionSources.filter(s=>s.available&&excluded.includes(s.id)).length,
@@ -39,8 +39,8 @@ export function fusionSnapshot(seconds, excluded=[]) {
  contributions:required.map(id=>({id,type:fusionSources.find(s=>s.id===id).type,signal:readings[id],included:!missing.includes(id)})),missing,
  context:missing.length?`Incomplete context · missing ${missing.join(', ')}`:`${readings.C05} + ${readings.DOOR.toLowerCase()} + ${readings.BAY.toLowerCase()}`,complete:missing.length===0};
 }
-export function fusionFrame(seconds, flowSeconds, excluded=[]) {
+export function fusionFrame(seconds, flowSeconds, excluded=[], mode="original") {
  if(!Number.isFinite(flowSeconds)||flowSeconds<0) throw new RangeError('Finite nonnegative flow time required');
- const snapshot=fusionSnapshot(seconds,excluded);
+ const snapshot=fusionSnapshot(seconds,excluded,mode);
  return {...snapshot, packets:snapshot.sources.filter(s=>s.included).flatMap((s,i)=>[0,.5].map((offset,j)=>({source:s.id,id:`${s.id}-${j}`,position:fusionPathPoint(s.id,((flowSeconds/4+i*.137+offset)%1))}))) };
 }

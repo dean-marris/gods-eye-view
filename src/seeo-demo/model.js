@@ -1,3 +1,5 @@
+import { forkliftLoadAssembly, actorPartVisible } from "./forkliftAssembly.js";
+import { facilityRoutes, pedestrianPath, barrierPath, getFacilityFrame, workStations } from "./facilityFlow.js";
 import { fusionSources, fusionNetworks, fusionHub, fusionPathPoint } from "./fusion.js";
 import { fusionSymbol } from "./fusion-view.js";
 import * as Cesium from "cesium";
@@ -129,11 +131,7 @@ export function createFacilityModel(
                 part(1.0, y, 0.12, 0.12, 0.12, 2.35, "#314b56"),
               ),
               part(1.03, 0, 0.42, 0.16, 1.2, 0.2, "#314b56"),
-              ...[-0.43, 0.43].map((y) =>
-                part(1.75, y, 0.17, 1.5, 0.15, 0.12, "#66757a"),
-              ),
-              part(1.75, 0, 0.31, 1.05, 1.05, 0.16, "#b58b57"),
-              part(1.75, 0, 0.47, 0.9, 0.95, 0.55, "#cba978"),
+              ...forkliftLoadAssembly(),
               part(0.25, 0, 1.2, 0.3, 0.4, 0.5, "#d5ef2e"),
               part(0.25, 0, 1.7, 0.28, 0.28, 0.28, "#f5bf36", "round"),
             ];
@@ -195,6 +193,7 @@ export function createFacilityModel(
         c = Math.cos(radians),
         s = Math.sin(radians);
       for (const part of group.parts) {
+        part.entity.show = actorPartVisible(part, actor);
         const angle = part.cab
           ? Cesium.Math.toRadians(actor.cabHeading)
           : radians;
@@ -282,7 +281,7 @@ export function createFacilityModel(
     // The information layer has its own labels; physical geometry and original
     // camera pick targets remain mounted underneath and return to full labels off.
     for (const entity of viewer.entities.values) {
-      if (entity.label && !entity.id.startsWith('fusion:') && entity.id !== 'proposal-label') entity.label.show = !fusionVisible;
+      if (entity.label && !entity.id.startsWith('fusion:') && entity.id !== 'proposal-label' && !/^(pickup:|drop:|protected-)/.test(entity.id)) entity.label.show = !fusionVisible;
     }
     if (!fusionVisible) { viewer.scene.requestRender(); return; }
     const add = options => { const entity=viewer.entities.add(options); fusionEntities.push(entity); return entity; };
@@ -334,7 +333,12 @@ export function createFacilityModel(
       [51, 3],
     ].entries())
       box(`wall-right:${index}`, 83.6, y, 0.4, h, 0, 3, "#ffcc00");
-    box("wall-front", 0, 53.6, 84, 0.4, 0, 0.6, "#ffcc00");
+    if(state.flowMode === "proposed") {
+      box("wall-front-west",0,53.6,41,.4,0,.6,"#ffcc00");
+      box("wall-front-east",45,53.6,39,.4,0,.6,"#ffcc00");
+      box("protected-access",42,51,2,6,.12,.04,"#b9e4d1");
+      label("protected-gate","PEDESTRIAN ACCESS",43,55,.3,"#116958");
+    } else box("wall-front", 0, 53.6, 84, 0.4, 0, 0.6, "#ffcc00");
     box("pitch-fascia",0,-.05,84,.5,2.15,.45,"#d40511");
     label("pitch-sign","DHL DC · CONCEPT",41,-2,3.8,"#b9000c");
     for (const area of areas) {
@@ -352,7 +356,7 @@ export function createFacilityModel(
             ? "#b8ddd2"
             : "#eaf0f2",
       );
-      label(`label:${area.id}`, area.name, area.x + area.w / 2, area.y + 3, 1);
+      label(`label:${area.id}`, state.flowMode === "proposed" && area.id === "crossing" ? "VEHICLE TRANSFER AREA" : area.name, area.x + area.w / 2, area.y + 3, 1);
     }
     for (const x of [7, 16, 25, 34])
       for (const y of [28, 39]) {
@@ -444,6 +448,7 @@ export function createFacilityModel(
         2,
       );
     label("yard-direction", "ONE WAY ↑", 106, 60, 0.5);
+    if(state.flowMode === "original") {
     line(
       "walkway",
       [
@@ -455,6 +460,7 @@ export function createFacilityModel(
     );
     for (let i = 0; i < 8; i++)
       box(`stripe:${i}`, 50, 24 + i * 1.1, 10, 0.55, 0.12, 0.03, "#ffffff");
+    }
     for (const camera of cameras) {
       box(
         `camera-pole:${camera.id}`,
@@ -537,7 +543,21 @@ export function createFacilityModel(
         "#087f71",
       );
     }
-    for (const route of routes) {
+    if(state.flowMode === "proposed") {
+      for(const station of workStations.filter(s=>s.area === state.area)) {
+        label(`pickup:${station.id}`,`${station.name} pickup`,...station.pickup,.5,"#af762a");
+        label(`drop:${station.id}`,`${station.name} drop-off`,...station.drop,.5,"#147f85");
+      }
+      for(let i=1;i<pedestrianPath.length;i++) {
+        const a=pedestrianPath[i-1],b=pedestrianPath[i];
+        box(`protected-floor:${i}`,Math.min(a[0],b[0])-1,Math.min(a[1],b[1])-1,Math.abs(b[0]-a[0])+2,Math.abs(b[1]-a[1])+2,.12,.04,"#b9e4d1");
+        const c=barrierPath[i-1],d=barrierPath[i];
+        box(`protected-barrier:${i}`,Math.min(c[0],d[0])-.12,Math.min(c[1],d[1])-.12,Math.abs(d[0]-c[0])+.24,Math.abs(d[1]-c[1])+.24,.2,1,"#138c80");
+        for(let t=0;t<=1;t+=.1) box(`protected-post:${i}:${t}`,c[0]+(d[0]-c[0])*t-.2,c[1]+(d[1]-c[1])*t-.2,.4,.4,.2,1.25,"#ffcc00");
+      }
+      label("protected-label","PROPOSED PROTECTED PERIMETER · UNVALIDATED",42,52,1,"#116958");
+    }
+    for (const route of state.flowMode === "proposed" ? facilityRoutes : routes) {
       line(
         `simulated-route:${route.id}`,
         route.points.map((p) => [p[1], p[2], 0.35]),
@@ -546,7 +566,7 @@ export function createFacilityModel(
       );
       addActor(route);
     }
-    updateFrame(getReplayFrame(0));
+    updateFrame(getFacilityFrame(0,state.flowMode));
     renderFusion(state.fusion);
     viewer.scene.requestRender();
   }

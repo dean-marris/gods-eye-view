@@ -17,6 +17,8 @@ import {
   evidenceReplayMarkup,
 } from "./replayVisual.js";
 
+import { getFacilityFrame, reduceFacilityReplay, facilityRoutes, FLOW_DURATION, protectedWalkwayMarkup, workStations } from "./facilityFlow.js";
+
 let replay = initialReplay();
 let animationId;
 let lastAnimationTime;
@@ -24,7 +26,8 @@ let lastAnimationTime;
 const state = {
   area: "crossing",
   window: "shift",
-  events: true,
+  events: false,
+  flowMode: "proposed",
   coverage: false,
   proposal: false,
   view: "plan",
@@ -38,13 +41,18 @@ let modelLoading = false;
 const $ = (id) => document.getElementById(id);
 
 function updateReplay() {
-  const frame = getReplayFrame(replay.seconds);
-  const clock = `00:${replay.seconds.toFixed(1).padStart(4, "0")} / 00:40`;
+  const frame = getFacilityFrame(replay.seconds, state.flowMode);
+  const duration = state.flowMode === "proposed" ? FLOW_DURATION : 40;
+  const formatTime = value => `${String(Math.floor(value/60)).padStart(2,"0")}:${(value%60).toFixed(1).padStart(4,"0")}`;
+  const clock = `${formatTime(replay.seconds)} / ${formatTime(duration)}`;
+  $("replay-time").max = String(duration);
+  document.querySelectorAll("[data-flow-mode]").forEach(button=>button.setAttribute("aria-pressed", String(button.dataset.flowMode===state.flowMode)));
+  $("flow-title").textContent = state.flowMode === "proposed" ? "Separated people & forklift flow" : "Original crossing · EX-003";
   if ($("replay-actors")) $("replay-actors").innerHTML = actorMarkup(frame);
   $("replay-time").value = String(replay.seconds);
   $("replay-time").setAttribute(
     "aria-valuetext",
-    `${replay.seconds.toFixed(1)} seconds of 40, simulated`,
+    `${replay.seconds.toFixed(1)} seconds of ${duration}, simulated`,
   );
   $("replay-clock").textContent = clock;
   $("replay-play").textContent = replay.playing ? "Ⅱ Pause" : "▶ Play";
@@ -58,23 +66,16 @@ function updateReplay() {
     crossing: "Crossing interaction · simulated",
     clear: "Routes clear the crossing",
   };
-  $("replay-phase").textContent = phases[frame.phase];
+  $("replay-phase").textContent = `${replay.playing ? "PLAYING" : replay.seconds === duration && state.flowMode === "original" ? "FINISHED" : "PAUSED"} · ${state.flowMode === "proposed" ? "Repeating work circuits · protected perimeter" : phases[frame.phase]}`;
+  $("work-status").innerHTML = state.flowMode === "proposed" ? frame.actors.filter(a=>a.kind==="forklift").map(a=>`<span>${a.id} · ${a.motion}</span>`).join("") : "";
   const truck = frame.actors.find((actor) => actor.id === "TR-01");
   $("truck-status").textContent =
     `SIMULATED · Truck & trailer · ${truck.motion === "positioning" ? "Positioning for Bay 1" : truck.motion === "reversing" ? "REVERSING into Bay 1" : "Docked at Bay 1"} · authored manoeuvre`;
   $("replay-phase").dataset.phase = frame.phase;
   $("replay-separation").textContent =
-    `Model-space separation: ${frame.separation.toFixed(1)} m · synthetic`;
-  if ($("evidence-replay-actors")) {
-    $("evidence-replay-actors").innerHTML = actorMarkup(frame, true);
-    $("evidence-replay-time").value = String(replay.seconds);
-    $("evidence-replay-clock").textContent = clock;
-    $("evidence-replay-play").textContent = replay.playing
-      ? "Ⅱ Pause simulation"
-      : "▶ Play simulation";
-  }
+    state.flowMode === "proposed" ? "Authored layout illustration · no measured safety or productivity outcome" : `Model-space separation: ${frame.separation.toFixed(1)} m · synthetic`;
   if (state.view === "model") model?.updateFrame(frame);
-  if ($( "fusion-context-text")) { updateFusionReadings(fusionSnapshot(replay.seconds, fusion.excluded)); }
+  if ($( "fusion-context-text")) { updateFusionReadings(fusionSnapshot(replay.seconds, fusion.excluded, state.flowMode)); }
 }
 
 function animateReplay(now) {
@@ -83,7 +84,9 @@ function animateReplay(now) {
       ? 0
       : Math.max(0, (now - lastAnimationTime) / 1000);
   lastAnimationTime = now;
-  replay = reduceReplay(replay, { type: "tick", seconds: elapsed });
+  animationId = undefined;
+  if (document.hidden || document.querySelector("dialog[open]")) { dispatchReplay({type:"pause"}); return; }
+  replay = reduceFacilityReplay(replay, { type: "tick", seconds: Math.min(.1, elapsed) }, state.flowMode);
   updateReplay();
   animationId = replay.playing
     ? requestAnimationFrame(animateReplay)
@@ -92,7 +95,7 @@ function animateReplay(now) {
 }
 
 function dispatchReplay(action) {
-  replay = reduceReplay(replay, action);
+  replay = reduceFacilityReplay(replay, action, state.flowMode);
   if (!replay.playing && animationId !== undefined) {
     cancelAnimationFrame(animationId);
     animationId = undefined;
@@ -141,14 +144,14 @@ function planMarkup() {
     <rect x="85" y="0" width="30" height="65" rx="1" fill="#dce3e7" stroke="#b0bdc7" stroke-width=".3"/>
     <path d="M104 60V8" stroke="#fff" stroke-width=".2" stroke-dasharray="1 1"/>
     <rect x="0" y="0" width="84" height="54" rx=".5" fill="#fff" stroke="#ffcc00" stroke-width="1"/>
-    <path d="M 26 0 V 16 M 63.5 0 V 16" stroke="#b3c1c9" stroke-width=".5"/>
-    <path d="M 3 17.7 H 81 M 46.5 18 V 51" stroke="#d8e6e3" stroke-width="1.6"/>
-    <path d="M 3 17.7 H 81" stroke="#fff" stroke-width=".15" stroke-dasharray="1 1"/>
+    ${state.flowMode === "original" ? '<path d="M 26 0 V 16 M 63.5 0 V 16" stroke="#b3c1c9" stroke-width=".5"/>' : ""}
+    ${state.flowMode === "original" ? `<path d="M 3 17.7 H 81 M 46.5 18 V 51" stroke="#d8e6e3" stroke-width="1.6"/>
+    <path d="M 3 17.7 H 81" stroke="#fff" stroke-width=".15" stroke-dasharray="1 1"/>` : ""}
     ${areas
       .map((area) => {
         const selected = area.id === state.area;
         const count = visible.filter((event) => event.area === area.id).length;
-        return `<g class="svg-area" role="button" tabindex="0" data-area="${area.id}" aria-label="${area.name}${area.id === "unknown" ? ", unmonitored" : `, ${count} sample event${count === 1 ? "" : "s"}`}" aria-pressed="${selected}"><rect class="area-floor" x="${area.x}" y="${area.y}" width="${area.w}" height="${area.h}" rx=".4" fill="${area.id === "unknown" ? "#edf0f2" : selected ? "#e3f2ed" : area.id === "yard" ? "#dce3e7" : "#f6f8f9"}" stroke="${selected ? "#138c80" : "#dce4e8"}" stroke-width="${selected ? ".55" : ".2"}"/>${area.id === "unknown" ? `<rect x="${area.x}" y="${area.y}" width="${area.w}" height="${area.h}" fill="url(#hatch)" opacity=".5"/>` : ""}<text class="svg-label" x="${area.x + 1.5}" y="${area.y + 3.1}">${area.name}</text><text class="svg-secondary" x="${area.x + 1.5}" y="${area.y + 5.1}">${area.id === "unknown" ? "Monitoring unavailable" : `${count} sample event${count === 1 ? "" : "s"}`}</text></g>`;
+        return `<g class="svg-area" role="button" tabindex="0" data-area="${area.id}" aria-label="${area.name}${area.id === "unknown" ? ", unmonitored" : `, ${count} sample event${count === 1 ? "" : "s"}`}" aria-pressed="${selected}"><rect class="area-floor" x="${area.x}" y="${area.y}" width="${area.w}" height="${area.h}" rx=".4" fill="${area.id === "unknown" ? "#edf0f2" : selected ? "#e3f2ed" : area.id === "yard" ? "#dce3e7" : "#f6f8f9"}" stroke="${selected ? "#138c80" : "#dce4e8"}" stroke-width="${selected ? ".55" : ".2"}"/>${area.id === "unknown" ? `<rect x="${area.x}" y="${area.y}" width="${area.w}" height="${area.h}" fill="url(#hatch)" opacity=".5"/>` : ""}<text class="svg-label" x="${area.x + 1.5}" y="${area.y + 3.1}">${state.flowMode === "proposed" && area.id === "crossing" ? "Vehicle transfer area" : area.name}</text><text class="svg-secondary" x="${area.x + 1.5}" y="${area.y + 5.1}">${area.id === "unknown" ? "Monitoring unavailable" : `${count} sample event${count === 1 ? "" : "s"}`}</text></g>`;
       })
       .join("")}
     <g pointer-events="none"><path d="M0 0H84" stroke="#d40511" stroke-width=".6"/><text x="42" y="-2" text-anchor="middle" font-size="1.9" font-weight="800" fill="#b9000c">DHL DC · CONCEPT</text></g>
@@ -156,9 +159,9 @@ function planMarkup() {
     <g pointer-events="none"><rect x="8" y="6.5" width="14" height="1.5" fill="#8fa7b4"/>${Array.from({length:12},(_,i)=>`<path d="M${9+i} 6.5V8" stroke="#d5e2e7" stroke-width=".2"/>`).join('')}</g>
     ${[32, 42, 52].map((x) => `<rect x="${x}" y="10" width="6" height="3" rx=".2" fill="#ffcf32" pointer-events="none"/>`).join("")}
     <g pointer-events="none"><rect x="28" y="6.5" width="32" height="1.5" fill="#8fa7b4"/>${Array.from({ length: 28 }, (_, i) => `<path d="M${29 + i} 6.5V8" stroke="#d5e2e7" stroke-width=".2"/>`).join("")}<rect x="5" y="56" width="28" height="10" rx=".4" fill="#e3ede9"/><path d="M12 66V57H43V51" fill="none" stroke="#8fb9aa" stroke-width="1.6"/><text x="6" y="60" class="svg-label">Employee entrance</text><text x="6" y="62.5" class="svg-secondary">Separate pedestrian approach</text><rect x="19" y="41" width="5" height="7" fill="url(#hatch)" opacity=".85"/><text x="5" y="51" class="svg-secondary">Hatched patch: illustrative rack blind spot</text>${[24, 35, 46].map((y, i) => `<rect x="84" y="${y}" width="13" height="5" fill="#b8c8d1" stroke="#fff" stroke-width=".2"/><text x="90" y="${y + 3}" text-anchor="middle" class="svg-secondary">BAY ${i + 1}</text>`).join("")}<g transform="translate(95 17)"><rect x="-4" y="-1.25" width="7" height="2.5" fill="#ffcc00"/><rect x="3" y="-1.1" width="2" height="2.2" fill="#ffcc00"/></g><text x="109" y="61" text-anchor="middle" class="svg-secondary">↑ ONE WAY</text></g>
-    <path d="M50 22 V48 M60 22 V48" stroke="#c1ceca" stroke-width=".25" stroke-dasharray="1 1" pointer-events="none"/>
+    ${state.flowMode === "original" ? `<path d="M50 22 V48 M60 22 V48" stroke="#c1ceca" stroke-width=".25" stroke-dasharray="1 1" pointer-events="none"/>
     <g fill="#fff" pointer-events="none">${Array.from({ length: 8 }, (_, i) => `<rect x="50" y="${24 + i * 1.1}" width="10" height=".55"/>`).join("")}</g>
-    <text x="55" y="46" text-anchor="middle" class="svg-secondary" transform="rotate(-90 55 46)">PEDESTRIAN CROSSING</text>
+    <text x="55" y="46" text-anchor="middle" class="svg-secondary" transform="rotate(-90 55 46)">PEDESTRIAN CROSSING</text>` : ""}
     ${[24, 35, 46].map((y) => `<path d="M83.5 ${y}h-1v5h1" fill="#cbd8de" stroke="#8ea4b2" stroke-width=".25"/>`).join("")}
     ${
       state.coverage
@@ -174,7 +177,7 @@ function planMarkup() {
     ${state.proposal ? `<g pointer-events="none"><path d="M48 35 V47 H59" fill="none" stroke="#168b7c" stroke-width=".8" stroke-dasharray="1 .4"/><rect x="48" y="50" width="26" height="2.7" rx=".4" fill="#d7eee6"/><text x="49" y="51.8" font-size="1.15" fill="#116958">PROPOSED BARRIER · UNVALIDATED</text></g>` : ""}
     ${state.events ? visible.map((event) => `<g class="svg-event" role="button" tabindex="0" data-event="${event.id}" aria-label="Open sample ${event.id}, ${event.time}, ${event.type}"><circle cx="${event.x}" cy="${event.y}" r="1.3" fill="#e8a153" fill-opacity=".2"/><circle cx="${event.x}" cy="${event.y}" r=".6" fill="#d88637" stroke="#fff" stroke-width=".2"/></g>`).join("") : ""}
     ${cameras.map((camera) => `<g class="svg-camera" role="button" tabindex="0" data-camera="${camera.id}" aria-label="${camera.id}, ${camera.name}, ${camera.active ? "synthetic camera" : "monitoring unavailable"}"><rect x="${camera.x - 1.5}" y="${camera.y - 1.1}" width="3" height="2.2" rx=".4" fill="${camera.active ? "#237b87" : "#8f9fa8"}" stroke="#fff" stroke-width=".25"/><text x="${camera.x}" y="${camera.y + 0.45}" text-anchor="middle" fill="#fff" font-size="1.15">${camera.id}</text></g>`).join("")}
-    ${routeMarkup()}<g id="replay-actors">${actorMarkup(getReplayFrame(replay.seconds))}</g>
+    ${state.flowMode === "proposed" ? protectedWalkwayMarkup() + workStations.filter(s=>s.area===state.area).map(s=>`<g pointer-events="none"><circle cx="${s.pickup[0]}" cy="${s.pickup[1]}" r="1.2" fill="none" stroke="#af762a" stroke-width=".2"/><circle cx="${s.drop[0]}" cy="${s.drop[1]}" r="1.2" fill="none" stroke="#147f85" stroke-width=".2"/><text x="${s.pickup[0]}" y="${s.pickup[1]-3}" text-anchor="middle" font-size=".9">${s.name} pickup</text><text x="${s.drop[0]}" y="${s.drop[1]+3}" text-anchor="middle" font-size=".9">${s.name} drop-off</text></g>`).join("") : ""}${routeMarkup(false,state.flowMode === "proposed" ? facilityRoutes : undefined)}<g id="replay-actors">${actorMarkup(getFacilityFrame(replay.seconds,state.flowMode))}</g>
     ${fusionPlanMarkup(fusion)}
     <g pointer-events="none"><path d="M1 70H11M1 69V71M11 69V71" stroke="#778d9b" stroke-width=".2"/><text x="6" y="69" text-anchor="middle" class="svg-secondary">10 m</text><text x="111" y="-2" class="svg-label">N ↑</text><text x="2" y="-2" class="svg-secondary">EXAMPLE LOGISTICS · FICTIONAL SITE · SIMULATED ROUTES</text></g>
   </svg>`;
@@ -188,7 +191,7 @@ function renderDetails() {
   );
   const unknown = !camera.active;
   $("details").innerHTML =
-    `<div class="area-eyebrow"><p class="eyebrow">SELECTED AREA</p><span>ILLUSTRATIVE</span></div><h2 class="area-title">${area.name}</h2><p class="area-description">${area.description}</p><div class="metric-row"><strong class="metric-number" style="${unknown ? "color:#7d8b96" : ""}">${unknown ? "—" : related.length}</strong><div><p>${unknown ? "Conditions unknown" : "Sample events in this window"}</p><small>${unknown ? "No available monitoring" : "Fixture counts · not a risk score"}</small></div></div><section class="detail-section"><div class="section-label"><h3>Camera & policy</h3><span>Demo configuration</span></div><div class="camera-card"><strong><i class="status-dot ${unknown ? "offline" : ""}"></i>${camera.id} · ${camera.name}</strong><button class="area-image-preview" data-area-image="${area.id}" aria-label="Open ${area.name} image"><img src="${areaImages[area.id]}" alt="Synthetic ${area.name} camera illustration" loading="lazy"/><span>Open ${area.name} image ↗</span></button><div class="camera-meta"><span>Feed</span><span>${unknown ? "Unavailable" : "Synthetic · no live video"}</span><span>Distance rule</span><span>${camera.threshold === null ? "Unavailable" : `${camera.threshold.toFixed(1)} m · example`}</span><span>Analytics validation</span><span>Not established</span></div></div><p class="inline-note">${unknown ? "No events shown here does not establish safe conditions." : "An estimated field of view is not proof of reliable detection throughout this area."}</p></section><section class="detail-section"><div class="section-label"><h3>Associated sample events</h3><span>${unknown ? "Unavailable" : related.length}</span></div><div class="event-list">${unknown ? '<div class="empty-state">Monitoring unavailable.<br>Survey this area before making a coverage claim.</div>' : related.length ? related.map((event) => `<button class="event-button" data-event="${event.id}"><strong>${event.time}</strong><span>${event.type}<small>${event.id} · schematic evidence only</small></span><span>↗</span></button>`).join("") : '<div class="empty-state">No sample events in this window. Choose Full shift to inspect the other fixtures.</div>'}</div></section>${state.proposal ? '<div class="proposal-note"><strong>Proposed change</strong><br>Add a short barrier beside the crossing. Layout sketch only; sightlines, access and operational suitability need review. No outcome is predicted.<br><a data-analysis href="./dispatch-comparison.html' + (location.pathname.endsWith("seeo-demo.html") ? "?from=local" : "") + '">Test a change with calculated dispatch results ↗</a></div>' : ""}`;
+    `<div class="area-eyebrow"><p class="eyebrow">SELECTED AREA</p><span>ILLUSTRATIVE</span></div><h2 class="area-title">${area.name}</h2><p class="area-description">${state.flowMode === "proposed" ? "Original-layout camera context: " : ""}${area.description}</p><div class="metric-row"><strong class="metric-number" style="${unknown ? "color:#7d8b96" : ""}">${unknown ? "—" : related.length}</strong><div><p>${unknown ? "Conditions unknown" : "Original-layout samples in this window"}</p><small>${unknown ? "No available monitoring" : "Fixture counts · not a risk score"}</small></div></div><section class="detail-section"><div class="section-label"><h3>Camera & policy</h3><span>Demo configuration</span></div><div class="camera-card"><strong><i class="status-dot ${unknown ? "offline" : ""}"></i>${camera.id} · ${camera.name}</strong><button class="area-image-preview" data-area-image="${area.id}" aria-label="Open ${area.name} image"><img src="${areaImages[area.id]}" alt="Synthetic ${area.name} camera illustration" loading="lazy"/><span>Open ${area.name} image ↗</span></button><div class="camera-meta"><span>Feed</span><span>${unknown ? "Unavailable" : "Synthetic · no live video"}</span><span>Distance rule</span><span>${camera.threshold === null ? "Unavailable" : `${camera.threshold.toFixed(1)} m · example`}</span><span>Analytics validation</span><span>Not established</span></div></div><p class="inline-note">${unknown ? "No events shown here does not establish safe conditions." : "An estimated field of view is not proof of reliable detection throughout this area."}</p></section><section class="detail-section"><div class="section-label"><h3>Original-layout sample events</h3><span>${unknown ? "Unavailable" : related.length}</span></div><div class="event-list">${unknown ? '<div class="empty-state">Monitoring unavailable.<br>Survey this area before making a coverage claim.</div>' : related.length ? related.map((event) => `<button class="event-button" data-event="${event.id}"><strong>${event.time}</strong><span>${event.type}<small>${event.id} · schematic evidence only</small></span><span>↗</span></button>`).join("") : '<div class="empty-state">No sample events in this window. Choose Full shift to inspect the other fixtures.</div>'}</div></section>${state.proposal ? '<div class="proposal-note"><strong>Proposed change</strong><br>Add a short barrier beside the crossing. Layout sketch only; sightlines, access and operational suitability need review. No outcome is predicted.<br><a data-analysis href="./dispatch-comparison.html' + (location.pathname.endsWith("seeo-demo.html") ? "?from=local" : "") + '">Test a change with calculated dispatch results ↗</a></div>' : ""}`;
 }
 
 function render() {
@@ -229,18 +232,44 @@ function render() {
     );
   });
   const [title, copy] = stories[state.step];
-  $("story-title").textContent = title;
-  $("story-copy").textContent = copy;
+  $("story-title").textContent = state.flowMode === "proposed" && state.step === "overview" ? "Separate people from forklift work." : title;
+  $("story-copy").textContent = state.flowMode === "proposed" && state.step === "overview" ? "Seven people use a protected perimeter connection while four forklifts repeat distinct pickup and drop-off circuits. Original crossing restores historical sample context. This is an authored layout illustration." : copy;
   model?.render({...state, fusion});
   syncFusion();
   $("layer-status").textContent =
-    `Event markers ${state.events ? "on" : "off"} · Camera estimates ${state.coverage ? "on (cyan)" : "off"} · Proposed barrier ${state.proposal ? "on (green/yellow)" : "off"}`;
+    `Original-layout sample markers ${state.events ? "on" : "off"} · Camera estimates ${state.coverage ? "on (cyan)" : "off"} · Additional barrier ${state.proposal ? "on (green/yellow)" : "off"}`;
   updateReplay();
 }
+
+let evidenceReplay = initialReplay(), evidenceRaf, evidenceLast;
+function paintEvidence() {
+ if(!$("evidence-replay-actors"))return;
+ $("evidence-replay-actors").innerHTML=actorMarkup(getReplayFrame(evidenceReplay.seconds),true);
+ $("evidence-replay-time").value=String(evidenceReplay.seconds);
+ $("evidence-replay-clock").textContent=`${evidenceReplay.seconds.toFixed(1)} / 40.0 s · ORIGINAL`;
+ $("evidence-replay-play").textContent=evidenceReplay.playing?"Ⅱ Pause simulation":"▶ Play simulation";
+}
+function dispatchEvidence(action) {
+ evidenceReplay=reduceReplay(evidenceReplay,action);
+ if(evidenceRaf!==undefined)cancelAnimationFrame(evidenceRaf);
+ evidenceRaf=undefined;evidenceLast=undefined;
+ paintEvidence();
+ if(evidenceReplay.playing)evidenceRaf=requestAnimationFrame(animateEvidence);
+}
+function animateEvidence(now) {
+ evidenceRaf=undefined;
+ if(document.hidden||!$("evidence-dialog").open){dispatchEvidence({type:"pause"});return;}
+ evidenceReplay=reduceReplay(evidenceReplay,{type:"tick",seconds:evidenceLast===undefined?0:Math.min(.1,(now-evidenceLast)/1000)});
+ evidenceLast=now;paintEvidence();
+ if(evidenceReplay.playing)evidenceRaf=requestAnimationFrame(animateEvidence);
+}
+$("evidence-dialog").addEventListener("close",()=>dispatchEvidence({type:"pause"}));
+document.addEventListener("visibilitychange",()=>{if(document.hidden)dispatchEvidence({type:"pause"});});
 
 function openEvidence(id) {
   const event = events.find((event) => event.id === id);
   if (!event) return;
+  setFlowMode("original");
   if (event.replaySeconds !== undefined)
     replay = reduceReplay(replay, {
       type: "seek",
@@ -256,9 +285,11 @@ function openEvidence(id) {
   if (event.replaySeconds !== undefined) {
     const visual = $("evidence-content").querySelector(".evidence-visual");
     visual.outerHTML = evidenceReplayMarkup(getReplayFrame(replay.seconds));
-    $("evidence-replay-play").addEventListener("click", togglePlayback);
+    evidenceReplay = {...replay,playing:false};
+    paintEvidence();
+    $("evidence-replay-play").addEventListener("click", ()=>dispatchEvidence({type:evidenceReplay.playing?"pause":"play"}));
     $("evidence-replay-time").addEventListener("input", (event) =>
-      dispatchReplay({ type: "seek", seconds: Number(event.target.value) }),
+      dispatchEvidence({ type: "seek", seconds: Number(event.target.value) }),
     );
     updateReplay();
   }
@@ -370,6 +401,7 @@ $("replay-reset").addEventListener("click", () =>
   dispatchReplay({ type: "reset" }),
 );
 $("replay-event").addEventListener("click", () => {
+  setFlowMode("original");
   state.area = "crossing";
   render();
   dispatchReplay({ type: "seek", seconds: REPLAY_EVENT_TIME });
@@ -386,14 +418,27 @@ $("evidence-dialog").addEventListener("close", () =>
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) dispatchReplay({ type: "pause" });
 });
+function setFlowMode(mode) {
+ dispatchReplay({type:"pause"});
+ state.flowMode=mode;
+ state.events=mode==="original";
+ replay=initialReplay();
+ $("scenario-caption").textContent=mode==="proposed" ? "PROPOSED · Four repeating forklift circuits · seven people on protected perimeter · truck docked · authored illustration" : "ORIGINAL CROSSING · 40-second authored event and truck docking replay";
+ render();
+}
+for(const button of document.querySelectorAll("[data-flow-mode]")) button.addEventListener("click",()=>setFlowMode(button.dataset.flowMode));
+new MutationObserver(()=> {if(document.querySelector("dialog[open]"))dispatchReplay({type:"pause"});}).observe(document.body,{subtree:true,attributes:true,attributeFilter:["open"]});
+motionPreference.addEventListener("change",()=>{if(motionPreference.matches){dispatchReplay({type:"pause"});dispatchEvidence({type:"pause"});}});
+window.addEventListener("pagehide",()=>dispatchReplay({type:"pause"}));
 render();
+if(!motionPreference.matches)dispatchReplay({type:"play"});
 
 function fusionCanMove() {
  return fusion.visible && !fusion.paused && !motionPreference.matches && !document.hidden && !document.querySelector('dialog[open]');
 }
 function renderFusionDetails() {
  $('fusion-details').hidden = !fusion.visible;
- $('fusion-details').innerHTML = fusionDetailsMarkup(fusion, replay.seconds);
+ $('fusion-details').innerHTML = fusionDetailsMarkup(fusion, replay.seconds, state.flowMode);
  $('fusion-include')?.addEventListener('click', () => {
   fusion.excluded = fusion.excluded.includes(fusion.selected) ? fusion.excluded.filter(id=>id!==fusion.selected) : [...fusion.excluded,fusion.selected];
   refreshFusion();
@@ -410,7 +455,7 @@ function updateFusionReadings(snapshot) {
  if(source&&$('fusion-source-reading')) { $('fusion-source-reading').textContent=source.signal; $('fusion-source-time').textContent=snapshot.time.toFixed(1); }
 }
 function paintFusion() {
- const frame = fusionFrame(replay.seconds, flowTime, fusion.excluded);
+ const frame = fusionFrame(replay.seconds, flowTime, fusion.excluded, state.flowMode);
  if (state.view === 'plan') for (const packet of frame.packets) {
   const circle=document.querySelector(`[data-fusion-packet="${packet.id}"]`);
   if(circle) {circle.setAttribute('cx',packet.position[0]);circle.setAttribute('cy',packet.position[1]);}
@@ -499,6 +544,7 @@ $("crossing-view").addEventListener("click", async () => {
 });
 
 $("dock-view").addEventListener("click", async () => {
+  setFlowMode("original");
   await setView("model");
   model?.dockView();
   dispatchReplay({ type: "seek", seconds: 12 });
@@ -556,7 +602,7 @@ document.querySelectorAll("[data-scenario]").forEach((button) =>
     if (button.dataset.scenario === "busy") model?.reset();
     else model?.focusScenario(scenario.area);
     $("scenario-caption").textContent =
-      `SIMULATED · ${scenario.title} · authored routes, not detected events`;
+      state.flowMode === "proposed" ? `PROPOSED · ${scenario.area} work circuit · people follow protected perimeter · authored illustration` : `ORIGINAL · ${scenario.title} · authored routes, not detected events`;
     dispatchReplay({ type: "seek", seconds: scenario.time });
     dispatchReplay({ type: "play" });
   }),

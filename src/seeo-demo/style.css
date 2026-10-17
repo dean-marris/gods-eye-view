@@ -1404,3 +1404,6 @@ h1 {
 .fusion-toolbar>span {color:#466d68}
 .fusion-camera-image {border:1px solid #a8ccc4;background:#fff;color:#17675d;border-radius:6px;padding:6px 9px;font:inherit;font-size:11px;cursor:pointer;margin-top:6px}
 #fusion-details:focus {outline:2px solid #4caa97;outline-offset:-2px}
+
+.work-status { display:flex; flex-wrap:wrap; gap:.3rem 1rem; font-size:.75rem; color:#385862; margin:.5rem 0; }
+[data-flow-mode][aria-pressed="true"] { background:#057f79; color:white; border-color:#057f79; }
