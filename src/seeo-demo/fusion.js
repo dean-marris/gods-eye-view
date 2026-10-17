@@ -1,9 +1,10 @@
 import { cameras } from './data.js';
 import { getReplayFrame } from './replay.js';
-export const fusionHub = { id:'hub', name:'seeo Fusion', position:[57,15,12], type:'hub', color:'#252361' };
+export const fusionHub = { id:'hub', name:'seeoHub', position:[48,15,12], type:'hub', color:'#252361' };
+export const fusionProcessor = { id:'fusion', name:'seeo Fusion', position:[68,15,12], type:'fusion', color:'#252361' };
 export const fusionNetworks = [
  {id:'AP-W',name:'Wi-Fi / West AP',position:[24,20,6],type:'network',color:'#7560ba'},
- {id:'AP-E',name:'Site gateway / East AP',position:[77,18,6],type:'network',color:'#7560ba'},
+ {id:'AP-E',name:'Wi-Fi / East AP',position:[77,18,6],type:'network',color:'#7560ba'},
 ];
 export const fusionSources = [
  ...cameras.map(c=>({id:c.id,name:`${c.id} camera`,type:'camera',area:c.name,position:[c.x+2.5,c.y+2.7,4.5],available:c.active,network:c.x<50?'AP-W':'AP-E',interface:'Example camera metadata',color:'#208ba7'})),
@@ -13,19 +14,28 @@ export const fusionSources = [
  {id:'BAY',name:'Bay presence sensor',type:'sensor',area:'Dispatch Bay 1',position:[94,29,1.2],network:'AP-E',interface:'MQTT · illustrative',color:'#c25787'},
  {id:'EYE',name:'Packing photoeye',type:'sensor',area:'Packing conveyor',position:[57,7.2,1.7],network:'AP-W',interface:'Digital I/O → gateway · illustrative',color:'#c25787'},
 ].map(s=>({...s,available:s.available??true}));
+// Logical demonstration links: transport type is not inferred from device location.
+export const fusionNodes = [...fusionSources, ...fusionNetworks, fusionHub, fusionProcessor];
+const fusionLinks = [
+ ...fusionSources.map(s=>({id:s.id,source:s.id,target:'hub',kind:'source',color:s.color})),
+ ...fusionNetworks.map(n=>({id:n.id,source:n.id,target:'hub',kind:'network',color:n.color})),
+ {id:'hub-fusion',source:'hub',target:'fusion',kind:'output',color:'#252361'},
+];
+export function fusionGraph(excluded=[]) {
+ const included=fusionSources.filter(s=>s.available&&!excluded.includes(s.id));
+ return {nodes:fusionNodes,links:fusionLinks.filter(link=>link.kind==='source'?included.some(s=>s.id===link.source):link.kind==='output'?included.length>0:true)};
+}
 export function resolveFusionPick(value) {
- if(value==='fusion-core:hub') return {type:'fusion',id:'hub'};
- if(typeof value!=='string'||!value.startsWith('fusion:')) return null;
- const id=value.slice(7);
- return [...fusionSources,...fusionNetworks,fusionHub].some(s=>s.id===id)?{type:'fusion',id}:null;
+ if(typeof value!=='string') return null;
+ const match=/^fusion(?:-core)?:([^:]+)$/.exec(value);
+ return match&&fusionNodes.some(n=>n.id===match[1])?{type:'fusion',id:match[1]}:null;
 }
 export function fusionPathPoint(id, phase) {
- const source=fusionSources.find(s=>s.id===id);
- if(!source||!Number.isFinite(phase)||phase<0||phase>1) throw new RangeError('Valid source and phase 0…1 required');
- const network=fusionNetworks.find(n=>n.id===source.network);
- const t=phase<=.5?phase*2:(phase-.5)*2;
- const start=phase<=.5?source.position:network.position,end=phase<=.5?network.position:fusionHub.position;
- return start.map((v,i)=>v+(end[i]-v)*t+(i===2?Math.sin(Math.PI*t)*3:0));
+ const link=fusionLinks.find(link=>link.id===id);
+ if(!link||!Number.isFinite(phase)||phase<0||phase>1) throw new RangeError('Valid link and phase 0…1 required');
+ const start=fusionNodes.find(n=>n.id===link.source).position;
+ const end=fusionNodes.find(n=>n.id===link.target).position;
+ return start.map((v,i)=>v+(end[i]-v)*phase+(i===2?Math.sin(Math.PI*phase)*(link.kind==='output'?1:3):0));
 }
 export function fusionSnapshot(seconds, excluded=[], mode="original") {
  const time=Number.isFinite(seconds)?Math.max(0,Math.min(mode==="proposed"?200:40,seconds)):0;
@@ -42,5 +52,6 @@ export function fusionSnapshot(seconds, excluded=[], mode="original") {
 export function fusionFrame(seconds, flowSeconds, excluded=[], mode="original") {
  if(!Number.isFinite(flowSeconds)||flowSeconds<0) throw new RangeError('Finite nonnegative flow time required');
  const snapshot=fusionSnapshot(seconds,excluded,mode);
- return {...snapshot, packets:snapshot.sources.filter(s=>s.included).flatMap((s,i)=>[0,.5].map((offset,j)=>({source:s.id,id:`${s.id}-${j}`,position:fusionPathPoint(s.id,((flowSeconds/4+i*.137+offset)%1))}))) };
+ const graph=fusionGraph(excluded);
+ return {...snapshot, ...graph, packets:graph.links.flatMap((link,i)=>[0,.5].map((offset,j)=>({link:link.id,source:link.source,target:link.target,id:`${link.id}-${j}`,position:fusionPathPoint(link.id,(flowSeconds/4+i*.137+offset)%1)}))) };
 }

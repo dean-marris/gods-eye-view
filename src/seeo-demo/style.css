@@ -1407,3 +1407,13 @@ h1 {
 
 .work-status { display:flex; flex-wrap:wrap; gap:.3rem 1rem; font-size:.75rem; color:#385862; margin:.5rem 0; }
 [data-flow-mode][aria-pressed="true"] { background:#057f79; color:white; border-color:#057f79; }
+
+/* Central topology names remain present at every Plan size. */
+.fusion-central-role {font-size:1.2px;fill:#252361}
+.fusion-central.selected>.fusion-core,.fusion-central:focus>.fusion-core {stroke:#111;stroke-width:.55px}
+.fusion-central.selected>.fusion-halo,.fusion-central:focus>.fusion-halo {stroke:#252361;stroke-width:.5px}
+.fusion-central-mobile-label {display:none}
+@media(max-width:600px){
+ .fusion-central-name,.fusion-central-role {display:none}
+ .fusion-central-mobile-label {display:block}
+}

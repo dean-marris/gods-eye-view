@@ -15,7 +15,7 @@ The demonstration helps operations and health-and-safety teams examine a propose
 | Capability | What you can explore |
 | --- | --- |
 | Whole-facility plan and 3D model | Receiving, storage aisles, rear service area, packing cells, dispatch crossing, dispatch bays and truck yard |
-| Sensor fusion layer | Animated camera, conveyor PLC and sensor signals through an illustrative Wi-Fi/site network into a central seeo Fusion hub, in Plan and 3D |
+| Sensor fusion layer | Animated camera, conveyor PLC, sensor and Wi-Fi inputs into seeoHub, then a distinct adjacent seeo Fusion node, in Plan and 3D |
 | Camera context | Selectable camera markers and seven distinct AI-generated, static area images |
 | Recognizable activity | Four forklifts, seven people and an articulated truck reversing into Bay 1 in the facility replay |
 | Scenario playback | Default separated people/forklift work flow, protected perimeter route and repeating pickup/drop-off circuits; original crossing and truck docking remain selectable |
@@ -30,7 +30,7 @@ The facility remains loaded beneath analysis. **Back to facility** or **Escape**
 
 ## Connected facility concept
 
-The sensor-fusion overlay illustrates **cameras + conveyor PLCs + sensors → Wi-Fi/site network → seeo Fusion → facility digital twin context**. Animated packets show the direction of information flow. Select a source to inspect its sample signal and interface; select the hub to see which inputs contribute to a combined operational context.
+The sensor-fusion overlay illustrates **cameras + conveyor PLCs + sensors + Wi-Fi → seeoHub → seeo Fusion → facility digital twin context**. Animated packets show the direction of information flow. Select a source to inspect its sample signal and interface; select seeoHub for edge collection or the separate seeo Fusion node for combined operational context.
 
 The Fusion controls change the **demo**, including source inclusion and simulated dropout. Missing required inputs make the fused context incomplete. The unavailable rear-service camera stays unavailable. These controls do not operate PLCs or send commands to customer equipment.
 
@@ -96,7 +96,7 @@ These instructions build the image from source with `docker compose up --build`;
 
 ## Try the solution in five minutes
 
-1. Open the facility, switch between **Plan** and **3D model**, and use **Fit whole site**. Explore the **Sensor fusion** layer: inspect a camera, conveyor PLC, sensor, network hop or the central hub. Pause flow or hide the layer to inspect the underlying facility.
+1. Open the facility, switch between **Plan** and **3D model**, and use **Fit whole site**. Explore the **Sensor fusion** layer: inspect a camera, conveyor PLC, sensor, Wi-Fi node, seeoHub or seeo Fusion. Pause flow or hide the layer to inspect the underlying facility.
 2. Select an area or camera. Open its generated image and switch between the seven area images.
 3. Explore **Proposed flow**: four distinct forklift circuits with pickup/drop-off dwell, loaded travel and empty returns; people use a protected perimeter connection. It repeats over 200 seconds and starts paused when reduced motion is preferred. Switch to **Original crossing** for the historical 40-second replay, or use **Watch truck dock**.
 4. Choose **Test a change**. Explore the productivity graph: switch measures, select a time to seek both scenes, and inspect the proposed layout changes. Then compare the two layouts with shared playback.

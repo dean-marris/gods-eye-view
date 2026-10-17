@@ -93,7 +93,7 @@ Open <http://localhost:4173/seeo-demo.html>. `PUPPETEER_SKIP_DOWNLOAD=1` skips t
 
 ## Sensor fusion layer
 
-The full facility offers an additive connection layer in both Plan and 3D. Representative cameras, conveyor PLCs and sensors feed an illustrative Wi-Fi/site-network layer and central seeo Fusion hub. Packet animation shows information flowing inward; it is independent of the physical replay. Pause flow, hide the layer, select a source, or use the accessible source list to inspect it.
+The full facility offers an additive connection layer in both Plan and 3D. Representative cameras, conveyor PLCs, sensors and two Wi-Fi infrastructure nodes feed a distinct **seeoHub** edge-collection node. A separate directed link connects it to **seeo Fusion**, displayed beside it for fusion/digital-twin context. Device links do not assert wireless transport. Packet animation shows information flowing inward; it is independent of the physical replay. Pause flow, hide the layer, select a source, or use the accessible source list to inspect it.
 
 Source readings and an example fused operational context follow fictional replay data. Demo inclusion controls can exclude and restore available inputs; missing required inputs make the combined context incomplete. C04 remains unavailable. Interface names and wireless paths are illustrative; no network discovery, actual PLC connection, real Wi-Fi coverage measurement or remote equipment control is implemented.
 
@@ -151,7 +151,7 @@ For native development, use the same Node and Vite commands without `docker comp
 
 The explicit `seeo-demo.vite.config.js` matters: the upstream default `npm run build` is aimed at the globe. The seeo configuration emits all four HTML entry points into `dist/`.
 
-Tests cover deterministic workload parity, baseline invariance, crossing/gate behavior, exposure and distance accounting, unfinished work, signed savings, load milestones, replay/truck motion, selection and framing helpers. Loading tests also cover independent single-pallet accounting, resource non-overlap, pickup/delivery/return milestones, equal and worse layouts, conservation, partial windows and invalid inputs. Productivity graph tests cover exact delivery steps, clipped interval curves, signed benefits, shared domains and censored completion. Fusion tests cover shared availability, explicit picks, source-network-hub endpoints, deterministic finite packet positions and camera/PLC/sensor dropout contributions. The latest feature verification passed 51 tests; this is the seeo suite, not a claim that every upstream QA workflow was run.
+Tests cover deterministic workload parity, baseline invariance, crossing/gate behavior, exposure and distance accounting, unfinished work, signed savings, load milestones, replay/truck motion, selection and framing helpers. Loading tests also cover independent single-pallet accounting, resource non-overlap, pickup/delivery/return milestones, equal and worse layouts, conservation, partial windows and invalid inputs. Productivity graph tests cover exact delivery steps, clipped interval curves, signed benefits, shared domains and censored completion. Fusion tests cover shared availability, explicit picks, source/Wi-Fi→seeoHub and seeoHub→Fusion endpoints, deterministic finite packet positions and camera/PLC/sensor dropout contributions. The latest feature verification passed 55 tests; this is the seeo suite, not a claim that every upstream QA workflow was run.
 
 ## Storage, secrets and portability
 

@@ -1,6 +1,6 @@
 import { forkliftLoadAssembly, actorPartVisible } from "./forkliftAssembly.js";
 import { facilityRoutes, pedestrianPath, barrierPath, getFacilityFrame, workStations } from "./facilityFlow.js";
-import { fusionSources, fusionNetworks, fusionHub, fusionPathPoint } from "./fusion.js";
+import { fusionGraph, fusionPathPoint } from "./fusion.js";
 import { fusionSymbol } from "./fusion-view.js";
 import * as Cesium from "cesium";
 import { areas, cameras, eventsInWindow } from "./data.js";
@@ -263,18 +263,26 @@ export function createFacilityModel(
   const fusionEntities = [];
   const fusionPackets = new Map();
   const fusionSourceLabels = new Map();
+  const fusionCentralLabels = new Map();
   let fusionSelected = null;
   function updateFusionLabelDetail() {
-    const compact = container.clientWidth < 600;
+    const compact = container.clientWidth < 600 || container.clientHeight < 500;
     for (const [id, entity] of fusionSourceLabels) {
       entity.label.show = !compact || id === fusionSelected;
+    }
+    for(const [id,entity] of fusionCentralLabels) {
+      // Keep both names visible and separated when the entire site is fitted on a phone.
+      entity.label.show=true;
+      entity.label.font=compact?'bold 12px sans-serif':'bold 14px sans-serif';
+      entity.label.text=id==='hub'?(compact?'seeoHub\nEDGE':'seeoHub\nEDGE COLLECTION'):(compact?'seeo Fusion\nDIGITAL TWIN':'seeo Fusion\nFUSION / DIGITAL TWIN');
+      entity.label.pixelOffset=new Cesium.Cartesian2(compact?(id==='hub'?-52:52):0,compact?(id==='hub'?-50:-12):-32);
     }
     viewer.scene.requestRender();
   }
   let fusionVisible = false;
   function renderFusion(fusion) {
     for (const entity of fusionEntities) viewer.entities.remove(entity);
-    fusionEntities.length = 0; fusionPackets.clear(); fusionSourceLabels.clear();
+    fusionEntities.length = 0; fusionPackets.clear(); fusionSourceLabels.clear(); fusionCentralLabels.clear();
     fusionSelected = fusion?.selected;
     const wasVisible = fusionVisible;
     fusionVisible = Boolean(fusion?.visible);
@@ -285,24 +293,28 @@ export function createFacilityModel(
     }
     if (!fusionVisible) { viewer.scene.requestRender(); return; }
     const add = options => { const entity=viewer.entities.add(options); fusionEntities.push(entity); return entity; };
-    for (const source of fusionSources.filter(s=>s.available&&!fusion.excluded.includes(s.id))) {
-      add({ id:`fusion-flow:${source.id}`, polyline: { positions:Array.from({length:33},(_,i)=>point(...fusionPathPoint(source.id,i/32))), width:fusion.selected===source.id||fusion.selected===source.network?3.2:1.5, material:color(source.color,.65), arcType:Cesium.ArcType.NONE } });
+    const graph=fusionGraph(fusion.excluded);
+    for (const link of graph.links) {
+      add({ id:`fusion-flow:${link.id}`, polyline: { positions:Array.from({length:33},(_,i)=>point(...fusionPathPoint(link.id,i/32))), width:link.kind==='output'?4:fusion.selected===link.source||fusion.selected===link.target?3.2:1.5, material:color(link.color,link.kind==='output'?.95:.65), arcType:Cesium.ArcType.NONE } });
+      // A short arrow in the exposed span preserves direction when flow is paused.
+      add({id:`fusion-direction:${link.id}`,polyline:{positions:[link.kind==='output'?.38:.6,link.kind==='output'?.62:.78].map(phase=>point(...fusionPathPoint(link.id,phase))),width:link.kind==='output'?12:8,material:new Cesium.PolylineArrowMaterialProperty(color(link.color,.9)),arcType:Cesium.ArcType.NONE}});
       for (let i=0;i<2;i++) {
-        const packet=add({id:`fusion-packet:${source.id}-${i}`,position:point(...source.position),point:{pixelSize:7,color:color(source.color),outlineColor:color('#ffffff'),outlineWidth:1.5,disableDepthTestDistance:Infinity}});
-        fusionPackets.set(`${source.id}-${i}`,packet);
+        const packet=add({id:`fusion-packet:${link.id}-${i}`,position:point(...fusionPathPoint(link.id,0)),point:{pixelSize:link.kind==='output'?9:7,color:color(link.color),outlineColor:color('#ffffff'),outlineWidth:1.5,disableDepthTestDistance:Infinity}});
+        fusionPackets.set(`${link.id}-${i}`,packet);
       }
     }
-    for (const node of [...fusionSources,...fusionNetworks,fusionHub]) {
+    for (const node of graph.nodes) {
       const available=node.available!==false&&!fusion.excluded.includes(node.id);
-      const hub=node.type==='hub', network=node.type==='network';
-      if(hub) {
-        add({id:'fusion-glow:hub',position:point(...node.position),orientation:Cesium.Transforms.headingPitchRollQuaternion(point(...node.position),new Cesium.HeadingPitchRoll()),ellipsoid:{radii:new Cesium.Cartesian3(5.1,5.1,.2),material:color(node.color,.14),outline:true,outlineColor:color(node.color,.5)}});
-        add({id:'fusion-ring:hub',position:point(...node.position),orientation:Cesium.Transforms.headingPitchRollQuaternion(point(...node.position),new Cesium.HeadingPitchRoll()),ellipsoid:{radii:new Cesium.Cartesian3(4.2,4.2,.13),material:color(node.color,.09),outline:true,outlineColor:color(node.color,.6)}});
+      const hub=node.type==='hub', processor=node.type==='fusion', central=hub||processor, network=node.type==='network';
+      if(central) {
+        add({id:`fusion-glow:${node.id}`,position:point(...node.position),orientation:Cesium.Transforms.headingPitchRollQuaternion(point(...node.position),new Cesium.HeadingPitchRoll()),ellipsoid:{radii:new Cesium.Cartesian3(5.1,5.1,.2),material:color(node.color,.14),outline:true,outlineColor:color(node.color,.5)}});
       }
-      if (hub) add({id:'fusion-core:hub',position:point(...node.position),ellipsoid:{radii:new Cesium.Cartesian3(2.1,2.1,2.1),material:color('#252361',.8),outline:true,outlineColor:color('#a5aeff')}});
-      const label=hub?'seeo FUSION\nDIGITAL TWIN':network?(node.id==='AP-W'?'Wi-Fi West':'Wi-Fi East'):`${fusionSymbol(node)} ${node.id}${available?'': ' ×'}`;
-      const nodeEntity = add({id:`fusion:${node.id}`,position:point(...node.position), label:{text:label,font:hub?'bold 17px sans-serif':'bold 11px sans-serif',fillColor:color(available?node.color:'#72828c'),showBackground:true,backgroundColor:color(fusion.selected===node.id?'#e2e5ff':'#ffffff',.94),backgroundPadding:new Cesium.Cartesian2(hub?12:7,hub?8:5),outlineColor:color('#ffffff'),outlineWidth:1,style:Cesium.LabelStyle.FILL_AND_OUTLINE,disableDepthTestDistance:Infinity,pixelOffset:new Cesium.Cartesian2(0,hub?-26:-21)},billboard:hub?undefined:{image:fusionGlyph(node,available),width:network?25:21,height:network?25:21,disableDepthTestDistance:Infinity}});
-      if (!hub && !network) fusionSourceLabels.set(node.id, nodeEntity);
+      if(hub) add({id:'fusion-core:hub',position:point(...node.position),ellipsoid:{radii:new Cesium.Cartesian3(2.1,2.1,2.1),material:color('#252361',.8),outline:true,outlineColor:color('#a5aeff')}});
+      if(processor) add({id:'fusion-core:fusion',position:point(...node.position),orientation:Cesium.Transforms.headingPitchRollQuaternion(point(...node.position),new Cesium.HeadingPitchRoll()),box:{dimensions:new Cesium.Cartesian3(4.2,3.6,3.2),material:color('#252361',.85),outline:true,outlineColor:color('#a5aeff')}});
+      const label=hub?'seeoHub\nEDGE COLLECTION':processor?'seeo Fusion\nFUSION / DIGITAL TWIN':network?(node.id==='AP-W'?'Wi-Fi West':'Wi-Fi East'):`${fusionSymbol(node)} ${node.id}${available?'': ' ×'}`;
+      const nodeEntity = add({id:`fusion:${node.id}`,position:point(...node.position), label:{text:label,font:central?'bold 14px sans-serif':'bold 11px sans-serif',fillColor:color(available?node.color:'#72828c'),showBackground:true,backgroundColor:color(fusion.selected===node.id?'#e2e5ff':'#ffffff',.94),backgroundPadding:new Cesium.Cartesian2(central?8:7,central?6:5),outlineColor:color('#ffffff'),outlineWidth:1,style:Cesium.LabelStyle.FILL_AND_OUTLINE,disableDepthTestDistance:Infinity,pixelOffset:new Cesium.Cartesian2(0,central?-32:-21)},billboard:central?undefined:{image:fusionGlyph(node,available),width:network?25:21,height:network?25:21,disableDepthTestDistance:Infinity}});
+      if(central) fusionCentralLabels.set(node.id,nodeEntity);
+      else fusionSourceLabels.set(node.id,nodeEntity);
     }
     updateFusionLabelDetail();
     viewer.scene.requestRender();
