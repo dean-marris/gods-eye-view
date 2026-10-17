@@ -10,7 +10,11 @@ Run the existing Docker Compose setup, then open `http://127.0.0.1:4173/seeo-dem
 
 The scenario includes a warehouse and truck yard, four forklifts, seven people, an articulated truck reverse-docking animation, selectable areas and cameras, seven synthetic camera-style images and sample event review. Camera images are static generated illustrations, not footage or exact reconstructions of model geometry. Camera coverage is illustrative; unavailable monitoring remains unknown.
 
-Choose **Test a change** to open `dispatch-comparison.html`: paired plan/3D scenes run an identical seeded workload through the baseline and proposed crossing. Barriers redirect people, gate rules create queues, and trajectories determine proximity episodes, exposure, waiting, completed jobs, backlog and distance. The shared timeline and encounter buttons support inspection of both runs.
+Choose **Test a change**, **Review a change**, or the dispatch-area action to open analysis inside the facility. The facility stays loaded; Back to facility or Escape restores the prior selection, viewpoint, replay time and scroll. The standalone comparison remains available at `dispatch-comparison.html`.
+
+Paired plan/3D scenes run an identical seeded workload through the baseline and proposed crossing. Barriers redirect people, gate rules create queues, and trajectories determine proximity episodes, exposure, waiting, completed trips, backlog and distance. Prominent scorecards show walking time/distance saved or added, forklift waiting and completed/unfinished work. The shared timeline and encounter buttons support inspection of both runs.
+
+Forklift load counters show picked, delivered and remaining loads at playback time and over the trial. Each modeled forklift trip assumes one pallet pickup at activation and delivery at its destination; queued/future trips have not picked. Handling and loading service times are not modeled. These are fictional simulated counters, not observed seeo measurements.
 
 The original facility barrier remains a layout illustration; its historical fixture events do not change. The separate comparison is a hypothetical crossing model with visible assumptions, including simplified braking and no collision physics. Its outputs are not validated injury or incident predictions.
 

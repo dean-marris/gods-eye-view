@@ -1,3 +1,4 @@
+import { summarizeDispatch, signedSaving, countForkliftLoads } from "./dispatchSummary.js";
 import "./dispatch.css";
 import {
   createWorkload,
@@ -58,6 +59,8 @@ function draw() {
     const counts = ["active", "queued", "complete", "pending"].map(
       (status) => frame.actors.filter((a) => a.status === status).length,
     );
+    const loads = countForkliftLoads(frame);
+    $(`${side}-loads`).textContent = `Simulated loads picked / delivered: ${loads.picked} / ${loads.delivered} · ${loads.remaining} remaining to deliver at ${time.toFixed(1)} s (includes queued/future trips)`;
     $(`${side}-live`).textContent =
       `${counts[0]} moving / waiting in scene · ${counts[1]} arrival-queued · ${counts[2]} completed · ${counts[3]} future arrivals`;
     $(`${side}-view`).dataset.time = frame.time;
@@ -65,6 +68,35 @@ function draw() {
   $("play").textContent = playing ? "Pause" : "Play";
 }
 function results() {
+  const before = summarizeDispatch(comparison.baseline);
+  const after = summarizeDispatch(comparison.proposal);
+  $("summary-window").textContent = `${before.window}-second fixed window · ${before.total} identical original trips per side · all arrivals retained`;
+  const elapsed = seconds => {
+    const rounded = Math.round(seconds);
+    return `${Math.floor(rounded / 60)} min ${rounded % 60} sec`;
+  };
+  $("scorecards").innerHTML = [
+    ["personDistance", "Walking distance", false],
+    ["personMovingSeconds", "Walking time", true],
+    ["vehicleWaiting", "Forklift waiting", true],
+  ].map(([key, title, isTime]) => {
+    const delta = signedSaving(before[key], after[key]);
+    const format = value => isTime ? elapsed(value) : `${number(value)} m`;
+    const heading = delta.label === "unchanged" ? `No change in ${title.toLowerCase()}` : delta.label === "added" ? `Extra ${title.toLowerCase()}` : `${title} saved`;
+    return `<article class="scorecard"><h3>${heading}</h3><strong class="impact ${delta.label}">${format(Math.abs(delta.value))}${delta.label === "unchanged" ? "" : delta.label === "added" ? " extra" : " saved"}</strong><p>Before ${format(before[key])}<br>After ${format(after[key])}</p><small>${isTime ? "Total across actors · " : "People only · "}before − after: ${delta.value > 0 ? "+" : ""}${number(delta.value)} ${isTime ? "actor-s" : "m"}</small></article>`;
+  }).join("") + `<article class="scorecard"><h3>Completed / unfinished trips</h3><strong>${before.completed} / ${before.unfinished} → ${after.completed} / ${after.unfinished}</strong><p>Before → After · of ${before.total} trips per side</p><small>Unfinished includes active, queued and future arrivals</small></article>`;
+  const beforeLoads = countForkliftLoads(comparison.baseline.frames.at(-1));
+  const afterLoads = countForkliftLoads(comparison.proposal.frames.at(-1));
+  const forkliftTrips = comparison.baseline.jobs.filter(job => job.kind === "vehicle").length;
+  $("scorecards").innerHTML += `<article class="scorecard"><h3>Simulated loads picked / delivered</h3><strong>${beforeLoads.picked} / ${beforeLoads.delivered} → ${afterLoads.picked} / ${afterLoads.delivered}</strong><p>Before → After · ${forkliftTrips} forklift trips per side · full ${before.window} s<br>Remaining to deliver: ${beforeLoads.remaining} → ${afterLoads.remaining} (includes queued/future)</p><small>One assumed load per forklift trip; pickup at activation, delivery at destination. Queued/future forklifts have not picked. No handling/service-time model; not observed counts.</small></article>`;
+  const exposureBefore = comparison.baseline.metrics.coOccupancySeconds;
+  const exposureAfter = comparison.proposal.metrics.coOccupancySeconds;
+  const exposureDelta = signedSaving(exposureBefore, exposureAfter);
+  $("scorecards").innerHTML += `<article class="scorecard"><h3>Mixed crossing occupancy</h3><strong>${number(Math.abs(exposureDelta.value))} s ${exposureDelta.label === "saved" ? "less" : exposureDelta.label === "added" ? "more" : "change"}</strong><p>Before ${number(exposureBefore)} s → After ${number(exposureAfter)} s</p><small>Simulated exposure proxy · not a safety outcome</small></article>`;
+  $("completion-note").textContent = before.completionSeconds !== null && after.completionSeconds !== null
+    ? `All trips completed: before ${number(before.completionSeconds)} s → after ${number(after.completionSeconds)} s. ${number(Math.abs(signedSaving(before.completionSeconds, after.completionSeconds).value))} s ${signedSaving(before.completionSeconds, after.completionSeconds).label}.`
+    : "Completion time is censored: one or both sides have unfinished trips at the window end. Compare completed and unfinished counts alongside time and distance.";
+
   const rows = [
     [
       "encounters",
@@ -275,5 +307,15 @@ for (const [id, angle] of [
 window.addEventListener("resize", () => {
   for (const renderer of Object.values(renderers)) renderer.resize();
 });
+const embedded = window.parent !== window && new URLSearchParams(location.search).has("embed");
+if (embedded) {
+  document.body.classList.add("embedded");
+  $("back").textContent = "← Back to facility";
+  const close = () => window.parent.postMessage({type: "seeo-close-analysis"}, location.origin);
+  document.querySelectorAll("header a").forEach(link => link.addEventListener("click", event => { event.preventDefault(); close(); }));
+  document.addEventListener("keydown", event => {
+    if (event.key === "Escape") { event.preventDefault(); close(); }
+  });
+}
 run();
 requestAnimationFrame(animate);

@@ -178,12 +178,19 @@ function renderDetails() {
   );
   const unknown = !camera.active;
   $("details").innerHTML =
-    `<div class="area-eyebrow"><p class="eyebrow">SELECTED AREA</p><span>ILLUSTRATIVE</span></div><h2 class="area-title">${area.name}</h2><p class="area-description">${area.description}</p><div class="metric-row"><strong class="metric-number" style="${unknown ? "color:#7d8b96" : ""}">${unknown ? "—" : related.length}</strong><div><p>${unknown ? "Conditions unknown" : "Sample events in this window"}</p><small>${unknown ? "No available monitoring" : "Fixture counts · not a risk score"}</small></div></div><section class="detail-section"><div class="section-label"><h3>Camera & policy</h3><span>Demo configuration</span></div><div class="camera-card"><strong><i class="status-dot ${unknown ? "offline" : ""}"></i>${camera.id} · ${camera.name}</strong><button class="area-image-preview" data-area-image="${area.id}" aria-label="Open ${area.name} image"><img src="${areaImages[area.id]}" alt="Synthetic ${area.name} camera illustration" loading="lazy"/><span>Open ${area.name} image ↗</span></button><div class="camera-meta"><span>Feed</span><span>${unknown ? "Unavailable" : "Synthetic · no live video"}</span><span>Distance rule</span><span>${camera.threshold === null ? "Unavailable" : `${camera.threshold.toFixed(1)} m · example`}</span><span>Analytics validation</span><span>Not established</span></div></div><p class="inline-note">${unknown ? "No events shown here does not establish safe conditions." : "An estimated field of view is not proof of reliable detection throughout this area."}</p></section><section class="detail-section"><div class="section-label"><h3>Associated sample events</h3><span>${unknown ? "Unavailable" : related.length}</span></div><div class="event-list">${unknown ? '<div class="empty-state">Monitoring unavailable.<br>Survey this area before making a coverage claim.</div>' : related.length ? related.map((event) => `<button class="event-button" data-event="${event.id}"><strong>${event.time}</strong><span>${event.type}<small>${event.id} · schematic evidence only</small></span><span>↗</span></button>`).join("") : '<div class="empty-state">No sample events in this window. Choose Full shift to inspect the other fixtures.</div>'}</div></section>${state.proposal ? '<div class="proposal-note"><strong>Proposed change</strong><br>Add a short barrier beside the crossing. Layout sketch only; sightlines, access and operational suitability need review. No outcome is predicted.<br><a href="./dispatch-comparison.html' + (location.pathname.endsWith("seeo-demo.html") ? "?from=local" : "") + '">Test a change with calculated dispatch results ↗</a></div>' : ""}`;
+    `<div class="area-eyebrow"><p class="eyebrow">SELECTED AREA</p><span>ILLUSTRATIVE</span></div><h2 class="area-title">${area.name}</h2><p class="area-description">${area.description}</p><div class="metric-row"><strong class="metric-number" style="${unknown ? "color:#7d8b96" : ""}">${unknown ? "—" : related.length}</strong><div><p>${unknown ? "Conditions unknown" : "Sample events in this window"}</p><small>${unknown ? "No available monitoring" : "Fixture counts · not a risk score"}</small></div></div><section class="detail-section"><div class="section-label"><h3>Camera & policy</h3><span>Demo configuration</span></div><div class="camera-card"><strong><i class="status-dot ${unknown ? "offline" : ""}"></i>${camera.id} · ${camera.name}</strong><button class="area-image-preview" data-area-image="${area.id}" aria-label="Open ${area.name} image"><img src="${areaImages[area.id]}" alt="Synthetic ${area.name} camera illustration" loading="lazy"/><span>Open ${area.name} image ↗</span></button><div class="camera-meta"><span>Feed</span><span>${unknown ? "Unavailable" : "Synthetic · no live video"}</span><span>Distance rule</span><span>${camera.threshold === null ? "Unavailable" : `${camera.threshold.toFixed(1)} m · example`}</span><span>Analytics validation</span><span>Not established</span></div></div><p class="inline-note">${unknown ? "No events shown here does not establish safe conditions." : "An estimated field of view is not proof of reliable detection throughout this area."}</p></section><section class="detail-section"><div class="section-label"><h3>Associated sample events</h3><span>${unknown ? "Unavailable" : related.length}</span></div><div class="event-list">${unknown ? '<div class="empty-state">Monitoring unavailable.<br>Survey this area before making a coverage claim.</div>' : related.length ? related.map((event) => `<button class="event-button" data-event="${event.id}"><strong>${event.time}</strong><span>${event.type}<small>${event.id} · schematic evidence only</small></span><span>↗</span></button>`).join("") : '<div class="empty-state">No sample events in this window. Choose Full shift to inspect the other fixtures.</div>'}</div></section>${state.proposal ? '<div class="proposal-note"><strong>Proposed change</strong><br>Add a short barrier beside the crossing. Layout sketch only; sightlines, access and operational suitability need review. No outcome is predicted.<br><a data-analysis href="./dispatch-comparison.html' + (location.pathname.endsWith("seeo-demo.html") ? "?from=local" : "") + '">Test a change with calculated dispatch results ↗</a></div>' : ""}`;
 }
 
 function render() {
   $("plan").innerHTML = planMarkup();
   renderDetails();
+  if (["crossing", "dispatch"].includes(state.area)) {
+    const entry = document.createElement("button");
+    entry.type = "button"; entry.className = "primary-button analysis-entry";
+    entry.setAttribute("data-analysis", "");
+    entry.textContent = "Test a dispatch change ↗";
+    $("details").prepend(entry);
+  }
   $("timeline").innerHTML = events
     .map(
       (event) =>
@@ -248,10 +255,11 @@ function openEvidence(id) {
 
 document.addEventListener("click", (event) => {
   const target = event.target.closest(
-    "[data-area-image],[data-area],[data-event],[data-camera],[data-window],[data-step]",
+    "[data-analysis],[data-area-image],[data-area],[data-event],[data-camera],[data-window],[data-step]",
   );
   if (!target) return;
-  if (target.dataset.areaImage) openAreaImage(target.dataset.areaImage);
+  if (target.hasAttribute("data-analysis")) { event.preventDefault(); openAnalysis(target); }
+  else if (target.dataset.areaImage) openAreaImage(target.dataset.areaImage);
   else if (target.dataset.area) openAreaImage(target.dataset.area);
   else if (target.dataset.event) openEvidence(target.dataset.event);
   else if (target.dataset.camera) openCamera(target.dataset.camera);
@@ -259,6 +267,7 @@ document.addEventListener("click", (event) => {
     state.window = target.dataset.window;
     render();
   } else if (target.dataset.step) {
+    if (target.dataset.step === "proposal") { openAnalysis(target); return; }
     state.step = target.dataset.step;
     state.area = state.step === "coverage" ? "storage" : "crossing";
     state.coverage = state.step === "coverage";
@@ -269,6 +278,7 @@ document.addEventListener("click", (event) => {
       model?.reset();
     }
     if (state.step === "evidence") openEvidence("EX-003");
+
   }
 });
 document.addEventListener("keydown", (event) => {
@@ -375,7 +385,7 @@ $("expand-view").addEventListener("click", () => {
   setExpandedView(!document.body.classList.contains("view-expanded"));
 });
 document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape") setExpandedView(false);
+  if (event.key === "Escape" && !$("analysis-dialog").open) setExpandedView(false);
 });
 
 $("crossing-view").addEventListener("click", async () => {
@@ -446,3 +456,39 @@ document.querySelectorAll("[data-scenario]").forEach((button) =>
     dispatchReplay({ type: "play" });
   }),
 );
+
+// The facility stays mounted underneath this drill-in. Removing the frame on close
+// releases its replay and optional Cesium contexts; the original viewer survives.
+let analysisReturn;
+function openAnalysis(trigger) {
+  if ($("analysis-dialog").open) return;
+  analysisReturn = {
+    trigger, x: window.scrollX, y: window.scrollY,
+    panels: [...document.querySelectorAll(".map-panel, .detail-panel, #details")].map(element => ({element, top: element.scrollTop, left: element.scrollLeft})),
+    pose: model?.captureView(),
+  };
+  dispatchReplay({type: "pause"});
+  if (state.view === "model") model?.closeUp();
+  $("analysis-context-image").src = areaImages.crossing;
+  $("analysis-frame").src = "./dispatch-comparison.html?embed=1";
+  $("analysis-dialog").showModal();
+}
+$("dispatch-comparison-link").addEventListener("click", event => {
+  event.preventDefault(); openAnalysis(event.currentTarget);
+});
+$("close-analysis").addEventListener("click", () => $("analysis-dialog").close());
+window.addEventListener("message", event => {
+  if (event.origin === location.origin && event.source === $("analysis-frame").contentWindow && event.data?.type === "seeo-close-analysis") $("analysis-dialog").close();
+});
+$("analysis-dialog").addEventListener("close", () => {
+  $("analysis-frame").src = "about:blank";
+  const saved = analysisReturn;
+  if (!saved) return;
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    if ($("analysis-dialog").open) return;
+    model?.restoreView(saved.pose);
+    for (const panel of saved.panels) { panel.element.scrollTop = panel.top; panel.element.scrollLeft = panel.left; }
+    window.scrollTo(saved.x, saved.y);
+    if (saved.trigger?.isConnected) saved.trigger.focus({preventScroll: true});
+  }));
+});

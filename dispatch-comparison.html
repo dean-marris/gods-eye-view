@@ -26,6 +26,15 @@
           SIMULATED TRIAL<span>No live data · no incident prediction</span>
         </div>
       </div>
+      <section class="operational-summary" aria-labelledby="summary-title">
+        <p class="eyebrow">SIMULATED OPERATIONAL IMPACT · BEFORE − AFTER</p>
+        <h2 id="summary-title">Walking, waiting and completed trips</h2>
+        <p id="summary-window"></p>
+        <div id="scorecards" class="scorecards"></div>
+        <p id="completion-note"></p>
+        <p class="quiet">Walking time is summed moving actor-seconds, not elapsed shift time. Distance and movement include unfinished trips; fewer completed trips do not establish efficiency. Trips are people/forklift journeys, not loading jobs. No loading/service time, labour-hours or monetary savings are modeled.</p>
+        <p class="measurement-status"><strong>Simulated:</strong> fictional seeded trajectories. <strong>Observed before/after:</strong> seeo site measurements are not connected.</p>
+      </section>
       <form id="settings" class="settings">
         <fieldset>
           <legend>Shared demand</legend>
@@ -143,6 +152,7 @@
             ></svg>
             <div class="cesium" hidden></div>
           </div>
+          <p id="baseline-loads" class="scene-caption"></p>
           <p id="baseline-live" class="scene-caption"></p>
         </section>
         <section class="panel">
@@ -161,6 +171,7 @@
             ></svg>
             <div class="cesium" hidden></div>
           </div>
+          <p id="proposal-loads" class="scene-caption"></p>
           <p id="proposal-live" class="scene-caption"></p>
         </section>
       </div>

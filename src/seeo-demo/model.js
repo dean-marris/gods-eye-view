@@ -583,6 +583,23 @@ export function createFacilityModel(
     );
     viewer.scene.requestRender();
   }
+  function captureView() {
+    return {
+      position: Cesium.Cartesian3.clone(viewer.camera.positionWC),
+      direction: Cesium.Cartesian3.clone(viewer.camera.directionWC),
+      up: Cesium.Cartesian3.clone(viewer.camera.upWC),
+      transform: Cesium.Matrix4.clone(viewer.camera.transform),
+      scenarioFocus, closeView, dockFocused,
+    };
+  }
+  function restoreView(pose) {
+    if (!pose) return;
+    ({scenarioFocus, closeView, dockFocused} = pose);
+    viewer.camera.lookAtTransform(Cesium.Matrix4.IDENTITY);
+    viewer.camera.setView({destination: pose.position, orientation: {direction: pose.direction, up: pose.up}});
+    viewer.camera.lookAtTransform(pose.transform);
+    viewer.scene.requestRender();
+  }
   const observer = new ResizeObserver(() =>
     scenarioFocus
       ? focusScenario(scenarioFocus)
@@ -601,6 +618,8 @@ export function createFacilityModel(
     dockView,
     focusScenario,
     reset,
+    captureView,
+    restoreView,
     resize: () => {
       viewer.resize();
       reset();
