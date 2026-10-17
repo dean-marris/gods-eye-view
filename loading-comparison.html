@@ -32,18 +32,6 @@
           >Trailer loading</a
         ><a href="./dispatch-comparison.html">Dispatch crossing ↗</a>
       </nav>
-      <section class="operational-summary">
-        <p class="eyebrow">COMPUTED LAYOUT IMPACT · BEFORE − AFTER</p>
-        <h2 id="headline"></h2>
-        <p id="summary-window"></p>
-        <div id="scorecards" class="scorecards"></div>
-        <p id="completion-note"></p>
-        <p class="measurement-status">
-          <strong>Simulated now:</strong> deterministic task schedules.
-          <strong>Future observed baseline / after:</strong> seeo camera and
-          site measurements are not connected.
-        </p>
-      </section>
       <form id="settings" class="settings">
         <fieldset>
           <legend>Same order, team & trial</legend>
@@ -89,6 +77,11 @@
         ><button id="equal" type="button">Use equal layout</button>
       </form>
       <p id="run-status" class="run-status" role="status"></p>
+      <section
+        id="productivity"
+        class="productivity"
+        aria-label="Interactive productivity comparison"
+      ></section>
       <section class="playback" aria-label="Shared playback">
         <button id="play" class="primary" type="button">Play</button
         ><button id="reset" type="button">Reset</button
@@ -165,6 +158,18 @@
         model. Both views use the same actual task frames. Forklifts carry a
         pallet only after pickup completes and until dock loading finishes.
       </p>
+      <section class="operational-summary">
+        <p class="eyebrow">COMPUTED LAYOUT IMPACT · BEFORE − AFTER</p>
+        <h2 id="headline"></h2>
+        <p id="summary-window"></p>
+        <div id="scorecards" class="scorecards"></div>
+        <p id="completion-note"></p>
+        <p class="measurement-status">
+          <strong>Simulated now:</strong> deterministic task schedules.
+          <strong>Future observed baseline / after:</strong> seeo camera and
+          site measurements are not connected.
+        </p>
+      </section>
       <section class="results">
         <div class="section-title">
           <div>

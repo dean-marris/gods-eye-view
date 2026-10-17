@@ -19,6 +19,7 @@ The demonstration helps operations and health-and-safety teams examine a propose
 | Recognizable activity | Four forklifts, seven people and an articulated truck reversing into Bay 1 in the facility replay |
 | Scenario playback | Busy shift, aisle traffic, dispatch staging and packing activity; play, pause, restart and seek |
 | Integrated analysis | Open **Test a change** inside the facility; switch between **Trailer loading** and **Dispatch crossing** |
+| Interactive productivity graph | Before/proposed progress curves linked to the replay, with selectable loads, walking, travel and queue measures; proposed-layout graphic explains the changes |
 | Complete loading workflow | Pickup dwell, loaded travel, checker walking/inspection, queues, dock loading and empty return; stock moves into the trailer |
 | Before-and-after comparison | Identical seeded arrivals and trips, synchronized plan/3D views, barrier/gate controls and inspectable encounters |
 | Operational scorecard | Walking distance/time saved or added, forklift waiting, completed/unfinished trips and elapsed completion time when all work finishes |
@@ -89,7 +90,7 @@ These instructions build the image from source with `docker compose up --build`;
 1. Open the facility, switch between **Plan** and **3D model**, and use **Fit whole site**.
 2. Select an area or camera. Open its generated image and switch between the seven area images.
 3. Start **Busy shift**, try the other facility scenarios, or use **Watch truck dock**.
-4. Choose **Test a change**. Read the operational scorecard, then compare the two layouts with shared playback.
+4. Choose **Test a change**. Explore the productivity graph: switch measures, select a time to seek both scenes, and inspect the proposed layout changes. Then compare the two layouts with shared playback.
 5. In **Trailer loading**, change the proposed staging/checker distances, order size or trial window and rerun. Try **Use equal layout** to check parity. In **Dispatch crossing**, change demand, seed or barrier/gate settings and choose **Run comparison**; inspect encounters.
 6. Close analysis with **Back to facility** or **Escape**. The original facility and cameras remain available.
 
@@ -114,6 +115,8 @@ Default assumptions: 24 pallets, a common 600-second window, forklift speed 3 m/
 Rounded times come from the schedule, not measured customer operations. Actor time sums across resources and is separate from elapsed trailer completion. Metrics are clipped to the same trial window; unfinished work remains visible and full-order time savings are withheld when either trailer is incomplete. Equal geometry produces equal results; a longer proposed layout can be worse. Dock unused capacity includes the rest of the fixed window after loading finishes, so faster completion does not automatically reduce that measure.
 
 These gains demonstrate **shorter staging and checker routes**, not a productivity benefit attributed to barriers. The loading model uses constant speeds and serialized resources, with schematic visual lane offsets; it does not resolve vehicle collisions, steering or congestion between travel paths.
+
+The productivity graph uses the same schedules as the plan and 3D replay. Loaded pallets advance at delivery events; walking, travel and waiting accumulate over task intervals. Selecting a graph time seeks both scenes. Its layout graphic describes **proposed simulated changes**, not installation evidence. The cursor readout compares both sides at the same time; full-order savings remain separate from progress at that instant.
 
 ### Dispatch crossing measurements
 
@@ -197,6 +200,7 @@ The build writes `dist/`. Editing local source or building it does not automatic
 | `src/seeo-demo/main.js` / `model.js` | Facility interactions, replay integration and Cesium model |
 | `src/seeo-demo/replay.js` | Authored facility actor and truck-docking replay |
 | `src/seeo-demo/loading.js` | Deterministic resource schedule, task milestones and clipped loading metrics |
+| `src/seeo-demo/productivity.js` / `productivity-view.js` | Schedule-derived productivity curves, cursor/metric interactions and proposed-layout graphic |
 | `src/seeo-demo/loading-main.js` / `loading-scene.js` | Loading UI, paired plan/Cesium views and pallet stock |
 | `src/seeo-demo/dispatch.js` | Renderer-independent deterministic crossing simulation |
 | `src/seeo-demo/dispatchSummary.js` | Operational summary and forklift-load accounting |

@@ -105,6 +105,8 @@ Change order size, common trial window or proposed staging/checker distances, th
 
 The default 24-pallet example loads the trailer in 489 s before versus 322.3 s proposed: about 2 min 47 s faster (34.1%). Checker walking falls from 576 m to 192 m and 384 s to 128 s. Forklift travel falls from 1,440 m to 864 m; total forklift queue wait falls from 211 s to 72.3 s. These are simulated outcomes of shorter routes with unchanged staffing and service times.
 
+The interactive productivity lens plots both schedules on shared time and metric axes. Select loaded pallets, checker walking, forklift travel or queue wait; graph selection seeks the shared replay, and playback moves its cursor. The implementation graphic shows the applied proposed staging/checker distances and selects related measures. Use the proposed-completion milestone to inspect progress at the same elapsed time, while retaining backlog and censoring in short trials. Unapplied form edits leave the graph on the previous applied trial until rerun. The layout graphic is not proof that a real intervention has been installed.
+
 ### Dispatch crossing
 
 This mode uses the same seeded arrivals/trips on both sides. Change proposal controls, then select **Run comparison**; edited but unapplied settings do not change the displayed trial. Shared playback and encounter selection seek both sides together.
@@ -141,7 +143,7 @@ For native development, use the same Node and Vite commands without `docker comp
 
 The explicit `seeo-demo.vite.config.js` matters: the upstream default `npm run build` is aimed at the globe. The seeo configuration emits all four HTML entry points into `dist/`.
 
-Tests cover deterministic workload parity, baseline invariance, crossing/gate behavior, exposure and distance accounting, unfinished work, signed savings, load milestones, replay/truck motion, selection and framing helpers. Loading tests also cover independent single-pallet accounting, resource non-overlap, pickup/delivery/return milestones, equal and worse layouts, conservation, partial windows and invalid inputs. The latest feature verification passed 35 tests; this is the seeo suite, not a claim that every upstream QA workflow was run.
+Tests cover deterministic workload parity, baseline invariance, crossing/gate behavior, exposure and distance accounting, unfinished work, signed savings, load milestones, replay/truck motion, selection and framing helpers. Loading tests also cover independent single-pallet accounting, resource non-overlap, pickup/delivery/return milestones, equal and worse layouts, conservation, partial windows and invalid inputs. Productivity graph tests cover exact delivery steps, clipped interval curves, signed benefits, shared domains and censored completion. The latest feature verification passed 40 tests; this is the seeo suite, not a claim that every upstream QA workflow was run.
 
 ## Storage, secrets and portability
 

@@ -1,5 +1,7 @@
 import "./loading.css";
 import { compareLoading, loadingFrame } from "./loading.js";
+import { registerLoadingLifecycle } from "./loading-lifecycle.js";
+import { createProductivityView } from "./productivity-view.js";
 import { createLoadingScene } from "./loading-scene.js";
 const $ = (id) => document.getElementById(id),
   form = $("settings");
@@ -9,6 +11,11 @@ let comparison,
   last = 0,
   scenes = [],
   three = false;
+const productivity = createProductivityView($("productivity"), (nextTime) => {
+  time = nextTime;
+  playing = false;
+  render();
+});
 const fmt = (n) => (n === null ? "Not completed" : n.toFixed(1));
 const duration = (n) =>
   `${Math.floor(Math.round(n) / 60)} min ${Math.round(n) % 60} s`;
@@ -98,6 +105,7 @@ function plan(run, frame) {
   return `<rect x="-54" y="-28" width="76" height="42" fill="#e4ece5"/><path d="M ${-staging} 0 H 6 M 0 0 V ${-checker}" fill="none" stroke="#acbca3" stroke-width="1.2"/><path d="M ${-staging} -3 H 0" stroke="#9aaea0" stroke-width=".12"/><text x="${-staging / 2}" y="-4" font-size="1.7" text-anchor="middle">${staging} m loaded route</text><text x="1" y="${-checker / 2 - 2}" font-size="1.5">${checker} m walk</text><rect x="6.5" y="-2" width="9" height="4" rx=".4" fill="#c1d1cd" stroke="#627c7d" stroke-width=".2"/><rect x="16" y="-1.8" width="3" height="3.6" rx=".5" fill="#345c65"/>${loaded}<text x="12" y="5" font-size="1.7" text-anchor="middle">TRAILER · ${c.delivered}/${run.config.order}</text><circle cx="0" cy="0" r="1.5" fill="#d6e5d3"/><text x="0" y="8" font-size="1.6" text-anchor="middle">CHECK → DOCK 6 m</text><text x="${-staging}" y="10" font-size="1.7" text-anchor="middle">STAGING · ${c.notPicked} left</text>${stock}<rect x="-1" y="${-checker - 1}" width="2" height="2" fill="#b3c88b"/><text x="-2" y="${-checker - 2}" font-size="1.5" text-anchor="end">Checker station</text>${frame.forklifts.map((a, i) => `<g transform="translate(${a.x},${a.y + (i === 0 ? -0.8 : 0.8)})"><g transform="rotate(${(a.heading * 180) / Math.PI})"><rect x="-1.3" y="-.65" width="2.3" height="1.3" rx=".2" fill="#dfa147" stroke="#526968" stroke-width=".12"/><rect x="-.8" y="-.5" width=".8" height="1" fill="#345c65"/><path d="M .8 -.6 V .6 M .8 -.4 H 2 M .8 .4 H 2" fill="none" stroke="#3a5557" stroke-width=".16"/>${a.carrying ? '<rect x="1" y="-.5" width="1" height="1" fill="#ae9770" stroke="#7b6746" stroke-width=".1"/>' : ""}</g><text y="${i === 0 ? -2 : 3}" font-size="1.4" text-anchor="middle">${a.id} ${a.stage}</text></g>`).join("")}<circle cx="${frame.checker.x}" cy="${frame.checker.y}" r=".5" fill="#a4bc47" stroke="#476342" stroke-width=".15"/><text x="-52" y="-24" font-size="1.6">METRES · same scale both sides · stock + carrying + loaded = ${run.config.order}</text>`;
 }
 function render() {
+  productivity.update(time);
   ["baseline", "proposal"].forEach((side, i) => {
     const run = comparison[side],
       f = loadingFrame(run, time),
@@ -183,6 +191,7 @@ function rerun() {
     playing = false;
     $("seek").max = comparison.baseline.config.window;
     summary();
+    productivity.setComparison(comparison);
     $("run-status").textContent =
       "Comparison rerun. Same order and service times on both sides; only the proposed geometry changed.";
     show3D(three);
@@ -233,7 +242,16 @@ $("plan").onclick = () => show3D(false);
 $("three").onclick = () => show3D(true);
 $("overview").onclick = () => scenes.forEach((s) => s.camera());
 window.addEventListener("resize", () => scenes.forEach((s) => s.resize()));
-window.addEventListener("pagehide", destroyScenes);
+registerLoadingLifecycle(window, {
+  release() {
+    destroyScenes();
+    productivity.destroy();
+    cancelAnimationFrame(animationFrame);
+  },
+  restore() {
+    last = performance.now();
+  },
+});
 const embedded = new URLSearchParams(location.search).has("embed");
 if (embedded) {
   document.body.classList.add("embedded");
@@ -262,6 +280,6 @@ function tick(now) {
     render();
   }
   last = now;
-  requestAnimationFrame(tick);
+  animationFrame = requestAnimationFrame(tick);
 }
-requestAnimationFrame(tick);
+let animationFrame = requestAnimationFrame(tick);
