@@ -1,5 +1,6 @@
 import { summarizeDispatch, signedSaving, countForkliftLoads } from "./dispatchSummary.js";
 import "./dispatch.css";
+import "./pitch.css";
 import {
   createWorkload,
   compareDispatch,

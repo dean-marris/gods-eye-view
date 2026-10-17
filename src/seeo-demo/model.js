@@ -325,16 +325,18 @@ export function createFacilityModel(
     box("yard-slab", 85, 0, 30, 65, -0.6, 0.5, "#bac8d1");
     box("floor", 0, 0, 84, 54, -0.6, 0.5, "#dfe7eb");
     // Cutaway walls leave the interior visible. Heights are illustrative.
-    box("wall-back", 0, 0, 84, 0.4, 0, 3, "#c4d1d9");
-    box("wall-left", 0, 0, 0.4, 54, 0, 3, "#c4d1d9");
+    box("wall-back", 0, 0, 84, 0.4, 0, 3, "#ffcc00");
+    box("wall-left", 0, 0, 0.4, 54, 0, 3, "#ffcc00");
     for (const [index, [y, h]] of [
       [0, 24],
       [29, 6],
       [40, 6],
       [51, 3],
     ].entries())
-      box(`wall-right:${index}`, 83.6, y, 0.4, h, 0, 3, "#c4d1d9");
-    box("wall-front", 0, 53.6, 84, 0.4, 0, 0.6, "#c4d1d9");
+      box(`wall-right:${index}`, 83.6, y, 0.4, h, 0, 3, "#ffcc00");
+    box("wall-front", 0, 53.6, 84, 0.4, 0, 0.6, "#ffcc00");
+    box("pitch-fascia",0,-.05,84,.5,2.15,.45,"#d40511");
+    label("pitch-sign","DHL DC · CONCEPT",41,-2,3.8,"#b9000c");
     for (const area of areas) {
       box(
         `area:${area.id}`,
@@ -354,7 +356,7 @@ export function createFacilityModel(
     }
     for (const x of [7, 16, 25, 34])
       for (const y of [28, 39]) {
-        box(`rack:${x}:${y}`, x, y, 5, 7, 0.1, 4.5, "#9cafbc");
+        box(`rack:${x}:${y}`, x, y, 5, 7, 0.1, 4.5, "#b51c2b");
         for (const h of [1.5, 3])
           box(
             `shelf:${x}:${y}:${h}`,
@@ -364,7 +366,7 @@ export function createFacilityModel(
             7.2,
             h,
             0.15,
-            "#c7d3db",
+            "#ffcf32",
           );
         for (const h of [0.3, 1.7, 3.2])
           for (const dx of [0.5, 2.8])
@@ -380,7 +382,7 @@ export function createFacilityModel(
             );
       }
     for (const x of [32, 42, 52])
-      box(`packing:${x}`, x, 10, 6, 3, 0.1, 1.2, "#b5c5cf");
+      box(`packing:${x}`, x, 10, 6, 3, 0.1, 1.2, "#ffcf32");
     box("receiving-conveyor", 8, 6.5, 14, 1.5, 0.2, 0.8, "#6c899c");
     for (let i=0;i<12;i++) box(`receiving-roller:${i}`,9+i,6.5,.12,1.5,1,.08,"#c8d6dc");
     box("conveyor", 28, 6.5, 32, 1.5, 0.2, 0.8, "#6c899c");
@@ -416,7 +418,7 @@ export function createFacilityModel(
     for (const [index, y] of [24, 35, 46].entries()) {
       box(`dock:${index}`, 84, y, 13, 5, -0.25, 0.2, "#94aaba");
       label(`dock-label:${index}`, `BAY ${index + 1}`, 90.5, y + 2.5, 0.5);
-      box(`dock-frame:${index}`, 83.9, y, 0.2, 0.2, 0, 3.7, "#73909f");
+      box(`dock-frame:${index}`, 83.9, y, 0.2, 0.2, 0, 3.7, "#d40511");
       box(
         `dock-frame-end:${index}`,
         83.9,
@@ -425,11 +427,12 @@ export function createFacilityModel(
         0.2,
         0,
         3.7,
-        "#73909f",
+        "#d40511",
       );
     }
-    box("parked-trailer", 87, 15.7, 9, 2.6, 0.6, 2.9, "#b9c8d3");
-    box("parked-cab", 96, 15.8, 2.4, 2.4, 0.5, 2.1, "#4b6a80");
+    box("parked-trailer", 87, 15.7, 9, 2.6, 0.6, 2.9, "#ffcc00");
+    box("yard-trailer-stripe",87,15.66,9,.05,1.5,.4,"#d40511");
+    box("parked-cab", 96, 15.8, 2.4, 2.4, 0.5, 2.1, "#ffcc00");
     for (const y of [11, 21, 31, 41, 51])
       line(
         `yard-lane:${y}`,

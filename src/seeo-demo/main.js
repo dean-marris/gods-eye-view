@@ -3,6 +3,7 @@ import { fusionPlanMarkup, fusionDetailsMarkup } from "./fusion-view.js";
 import { areaViews, cameraArea } from "./areaViews.js";
 import { areaImages } from "./areaImages.js";
 import "./style.css";
+import "./pitch.css";
 import { areas, cameras, events, eventsInWindow, areaCamera } from "./data.js";
 import {
   getReplayFrame,
@@ -139,7 +140,7 @@ function planMarkup() {
     <rect x="-4" y="-6" width="122" height="80" fill="url(#grid)"/>
     <rect x="85" y="0" width="30" height="65" rx="1" fill="#dce3e7" stroke="#b0bdc7" stroke-width=".3"/>
     <path d="M104 60V8" stroke="#fff" stroke-width=".2" stroke-dasharray="1 1"/>
-    <rect x="0" y="0" width="84" height="54" rx=".5" fill="#fff" stroke="#aebec8" stroke-width=".5"/>
+    <rect x="0" y="0" width="84" height="54" rx=".5" fill="#fff" stroke="#ffcc00" stroke-width="1"/>
     <path d="M 26 0 V 16 M 63.5 0 V 16" stroke="#b3c1c9" stroke-width=".5"/>
     <path d="M 3 17.7 H 81 M 46.5 18 V 51" stroke="#d8e6e3" stroke-width="1.6"/>
     <path d="M 3 17.7 H 81" stroke="#fff" stroke-width=".15" stroke-dasharray="1 1"/>
@@ -150,10 +151,11 @@ function planMarkup() {
         return `<g class="svg-area" role="button" tabindex="0" data-area="${area.id}" aria-label="${area.name}${area.id === "unknown" ? ", unmonitored" : `, ${count} sample event${count === 1 ? "" : "s"}`}" aria-pressed="${selected}"><rect class="area-floor" x="${area.x}" y="${area.y}" width="${area.w}" height="${area.h}" rx=".4" fill="${area.id === "unknown" ? "#edf0f2" : selected ? "#e3f2ed" : area.id === "yard" ? "#dce3e7" : "#f6f8f9"}" stroke="${selected ? "#138c80" : "#dce4e8"}" stroke-width="${selected ? ".55" : ".2"}"/>${area.id === "unknown" ? `<rect x="${area.x}" y="${area.y}" width="${area.w}" height="${area.h}" fill="url(#hatch)" opacity=".5"/>` : ""}<text class="svg-label" x="${area.x + 1.5}" y="${area.y + 3.1}">${area.name}</text><text class="svg-secondary" x="${area.x + 1.5}" y="${area.y + 5.1}">${area.id === "unknown" ? "Monitoring unavailable" : `${count} sample event${count === 1 ? "" : "s"}`}</text></g>`;
       })
       .join("")}
-    ${[7, 16, 25, 34].flatMap((x) => [28, 39].map((y) => `<g pointer-events="none"><rect x="${x}" y="${y}" width="5" height="7" rx=".25" fill="#dce4e9" stroke="#adbdc8" stroke-width=".2"/><path d="M${x + 1} ${y + 0.5}V${y + 6.5}M${x + 2.5} ${y + 0.5}V${y + 6.5}M${x + 4} ${y + 0.5}V${y + 6.5}" stroke="#bccbd5" stroke-width=".18"/></g>`)).join("")}
+    <g pointer-events="none"><path d="M0 0H84" stroke="#d40511" stroke-width=".6"/><text x="42" y="-2" text-anchor="middle" font-size="1.9" font-weight="800" fill="#b9000c">DHL DC · CONCEPT</text></g>
+    ${[7, 16, 25, 34].flatMap((x) => [28, 39].map((y) => `<g pointer-events="none"><rect x="${x}" y="${y}" width="5" height="7" rx=".25" fill="#ffe588" stroke="#d40511" stroke-width=".2"/><path d="M${x + 1} ${y + 0.5}V${y + 6.5}M${x + 2.5} ${y + 0.5}V${y + 6.5}M${x + 4} ${y + 0.5}V${y + 6.5}" stroke="#bccbd5" stroke-width=".18"/></g>`)).join("")}
     <g pointer-events="none"><rect x="8" y="6.5" width="14" height="1.5" fill="#8fa7b4"/>${Array.from({length:12},(_,i)=>`<path d="M${9+i} 6.5V8" stroke="#d5e2e7" stroke-width=".2"/>`).join('')}</g>
-    ${[32, 42, 52].map((x) => `<rect x="${x}" y="10" width="6" height="3" rx=".2" fill="#d8e1e6" pointer-events="none"/>`).join("")}
-    <g pointer-events="none"><rect x="28" y="6.5" width="32" height="1.5" fill="#8fa7b4"/>${Array.from({ length: 28 }, (_, i) => `<path d="M${29 + i} 6.5V8" stroke="#d5e2e7" stroke-width=".2"/>`).join("")}<rect x="5" y="56" width="28" height="10" rx=".4" fill="#e3ede9"/><path d="M12 66V57H43V51" fill="none" stroke="#8fb9aa" stroke-width="1.6"/><text x="6" y="60" class="svg-label">Employee entrance</text><text x="6" y="62.5" class="svg-secondary">Separate pedestrian approach</text><rect x="19" y="41" width="5" height="7" fill="url(#hatch)" opacity=".85"/><text x="5" y="51" class="svg-secondary">Hatched patch: illustrative rack blind spot</text>${[24, 35, 46].map((y, i) => `<rect x="84" y="${y}" width="13" height="5" fill="#b8c8d1" stroke="#fff" stroke-width=".2"/><text x="90" y="${y + 3}" text-anchor="middle" class="svg-secondary">BAY ${i + 1}</text>`).join("")}<g transform="translate(95 17)"><rect x="-4" y="-1.25" width="7" height="2.5" fill="#8a9aa9"/><rect x="3" y="-1.1" width="2" height="2.2" fill="#526c80"/></g><text x="109" y="61" text-anchor="middle" class="svg-secondary">↑ ONE WAY</text></g>
+    ${[32, 42, 52].map((x) => `<rect x="${x}" y="10" width="6" height="3" rx=".2" fill="#ffcf32" pointer-events="none"/>`).join("")}
+    <g pointer-events="none"><rect x="28" y="6.5" width="32" height="1.5" fill="#8fa7b4"/>${Array.from({ length: 28 }, (_, i) => `<path d="M${29 + i} 6.5V8" stroke="#d5e2e7" stroke-width=".2"/>`).join("")}<rect x="5" y="56" width="28" height="10" rx=".4" fill="#e3ede9"/><path d="M12 66V57H43V51" fill="none" stroke="#8fb9aa" stroke-width="1.6"/><text x="6" y="60" class="svg-label">Employee entrance</text><text x="6" y="62.5" class="svg-secondary">Separate pedestrian approach</text><rect x="19" y="41" width="5" height="7" fill="url(#hatch)" opacity=".85"/><text x="5" y="51" class="svg-secondary">Hatched patch: illustrative rack blind spot</text>${[24, 35, 46].map((y, i) => `<rect x="84" y="${y}" width="13" height="5" fill="#b8c8d1" stroke="#fff" stroke-width=".2"/><text x="90" y="${y + 3}" text-anchor="middle" class="svg-secondary">BAY ${i + 1}</text>`).join("")}<g transform="translate(95 17)"><rect x="-4" y="-1.25" width="7" height="2.5" fill="#ffcc00"/><rect x="3" y="-1.1" width="2" height="2.2" fill="#ffcc00"/></g><text x="109" y="61" text-anchor="middle" class="svg-secondary">↑ ONE WAY</text></g>
     <path d="M50 22 V48 M60 22 V48" stroke="#c1ceca" stroke-width=".25" stroke-dasharray="1 1" pointer-events="none"/>
     <g fill="#fff" pointer-events="none">${Array.from({ length: 8 }, (_, i) => `<rect x="50" y="${24 + i * 1.1}" width="10" height=".55"/>`).join("")}</g>
     <text x="55" y="46" text-anchor="middle" class="svg-secondary" transform="rotate(-90 55 46)">PEDESTRIAN CROSSING</text>

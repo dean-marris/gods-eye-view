@@ -75,8 +75,9 @@ export function createLoadingScene(
   box(-16, -7, 76, 40, 0.1, "#dde7df", -0.2);
   route(run.points.staging, run.points.dock, "#d6a95b");
   route(run.points.station, run.points.check, "#8fa44a");
-  box(12, 0, 10, 3.4, 0.3, "#9eafb0", 1);
-  box(18.5, 0, 3.4, 3.2, 2.5, "#345c65");
+  box(12, 0, 10, 3.4, 0.3, "#ffcc00", 1);
+  box(12, -1.72, 10, .08, .2, "#d40511", 1.05);
+  box(18.5, 0, 3.4, 3.2, 2.5, "#ffcc00");
   for (const x of [8, 15, 19])
     for (const y of [-1.8, 1.8]) box(x, y, 0.8, 0.45, 0.8, "#2b4143");
   label(13, 2.8, "PARKED TRAILER");

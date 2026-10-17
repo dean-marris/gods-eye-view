@@ -1,0 +1,21 @@
+/* DHL-inspired pitch palette. Operational states and graph series retain their meaning. */
+:root { --pitch-yellow:#ffcc00; --pitch-red:#d40511; }
+body { background:#f6f5f0; }
+.topbar, body > header { background:var(--pitch-yellow); color:#302b22; border-bottom:5px solid var(--pitch-red); }
+.topbar .brand, header .brand { color:#164f51; }
+.topbar .brand-dot, header .brand span { color:#164f51; }
+.product-name { border-left-color:#a78000; }
+.prototype-badge { color:#a8000b; background:#fff5c2; border:1px solid #d9aa00; font-weight:800; }
+.demo-notice { background:#fff8d7; border-bottom-color:#eadca7; color:#54471d; }
+.notice-dot { background:var(--pitch-red); }
+.site-tag .site-icon { color:var(--pitch-red); }
+#dispatch-comparison-link { background:var(--pitch-red) !important; color:#fff; }
+.story button.active { border-color:var(--pitch-red); color:#a8000b; background:#fff8d7; }
+.story button.active span { background:var(--pitch-red); color:white; }
+.primary-button, button.primary { background:var(--pitch-red); color:white; }
+.primary-button:hover, button.primary:hover { background:#ad0010; }
+.map-panel { border-top:4px solid var(--pitch-yellow); }
+.map-toolbar { background:#fffdf3; }
+.trial-badge { background:#fff2b0; color:#59420b; border-left:4px solid var(--pitch-red); }
+.mode-links a.selected { background:#fff2b0; color:#a8000b; border-color:#e4b500; }
+@media(max-width:600px) { .prototype-badge { letter-spacing:.3px; font-size:9px; } }
