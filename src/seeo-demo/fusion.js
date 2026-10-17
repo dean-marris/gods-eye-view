@@ -1,6 +1,6 @@
 import { cameras } from './data.js';
 import { getReplayFrame } from './replay.js';
-export const fusionHub = { id:'hub', name:'seeo Fusion', position:[57,15,12], type:'hub', color:'#057f79' };
+export const fusionHub = { id:'hub', name:'seeo Fusion', position:[57,15,12], type:'hub', color:'#252361' };
 export const fusionNetworks = [
  {id:'AP-W',name:'Wi-Fi / West AP',position:[24,20,6],type:'network',color:'#7560ba'},
  {id:'AP-E',name:'Site gateway / East AP',position:[77,18,6],type:'network',color:'#7560ba'},
