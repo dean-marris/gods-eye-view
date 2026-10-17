@@ -1,3 +1,5 @@
+> **seeo facility demo:** [Open the public warehouse demonstration](https://seeo-facility-demo.dean501646.chatgpt.site/) or read [local setup and simulation assumptions](docs/seeo-demo.md). This fork adds fictional facility scenarios and a calculated dispatch-crossing comparison. The original project documentation follows.
+
 <div align="center">
 
 # 🌐 God's Eye View

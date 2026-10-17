@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#122d36" />
+    <title>seeo · Test a dispatch change</title>
+  </head>
+  <body>
+    <header>
+      <a class="brand" href="./">seeo<span>.</span></a
+      ><span>FACILITY INTELLIGENCE</span
+      ><a id="back" href="./">← Facility & evidence</a>
+    </header>
+    <main>
+      <div class="intro">
+        <div>
+          <p class="eyebrow">FICTIONAL DISPATCH BAY / TEST A CHANGE</p>
+          <h1>Same shift. Two possibilities.</h1>
+          <p>
+            Channel people through a crossing. Test the gate. See the exposure
+            and delay tradeoff in the same seeded workload.
+          </p>
+        </div>
+        <div class="trial-badge">
+          SIMULATED TRIAL<span>No live data · no incident prediction</span>
+        </div>
+      </div>
+      <form id="settings" class="settings">
+        <fieldset>
+          <legend>Shared demand</legend>
+          <label
+            >Traffic volume<select name="demand">
+              <option value="low">Low · 12 jobs</option>
+              <option value="normal" selected>Normal · 28 jobs</option>
+              <option value="peak">Peak · 60 jobs</option>
+            </select></label
+          ><label
+            >Repeatable seed<input
+              name="seed"
+              type="number"
+              min="1"
+              max="2147483646"
+              value="42"
+              required /></label
+          ><label
+            >Proximity threshold (m)<input
+              name="threshold"
+              type="number"
+              min="0.5"
+              max="10"
+              step="0.5"
+              value="3"
+              required
+          /></label>
+        </fieldset>
+        <fieldset>
+          <legend>Proposed change</legend>
+          <label class="check"
+            ><input name="barrier" type="checkbox" checked />Channel
+            barrier</label
+          ><label class="check"
+            ><input name="gate" type="checkbox" checked />Crossing gate</label
+          ><label
+            >Forklift speed (m/s)<input
+              name="speed"
+              type="number"
+              min="0.5"
+              max="5"
+              step="0.5"
+              value="3"
+              required /></label
+          ><label
+            >Ungated yielding<select name="yielding">
+              <option value="0">0%</option>
+              <option value="0.35" selected>35%</option>
+              <option value="1">100%</option>
+            </select></label
+          ><label
+            >Gate compliance<select name="compliance">
+              <option value="1">100%</option>
+              <option value="0.75">75%</option>
+              <option value="0">0%</option>
+            </select></label
+          >
+        </fieldset>
+        <button class="primary" type="submit">Run comparison ↗</button>
+      </form>
+      <p id="run-status" class="run-status" role="status"></p>
+      <section class="playback" aria-label="Shared playback">
+        <button id="play" class="primary" type="button">Play</button
+        ><button id="reset" type="button">Reset</button
+        ><label class="timeline"
+          >Shared time
+          <input
+            id="seek"
+            aria-label="Shared simulation time"
+            type="range"
+            min="0"
+            max="120"
+            step="0.1"
+            value="0" /></label
+        ><output id="time">0.0 / 120 s</output
+        ><label
+          >Playback<select id="rate">
+            <option value="1">1×</option>
+            <option value="2" selected>2×</option>
+            <option value="5">5×</option>
+            <option value="10">10×</option>
+          </select></label
+        >
+      </section>
+      <div class="view-toolbar">
+        <p>
+          <i class="dot person"></i> Person <i class="dot vehicle"></i> Loaded
+          forklift <span>Dashed outlines = model footprints</span>
+        </p>
+        <div>
+          <button id="plan" class="selected" type="button" aria-pressed="true">
+            Plan</button
+          ><button id="three" type="button" aria-pressed="false">
+            3D camera</button
+          ><button id="overview" type="button" disabled>Overview</button
+          ><button id="crossing-camera" type="button" disabled>
+            Crossing angle
+          </button>
+        </div>
+      </div>
+      <div class="paired">
+        <section class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">BEFORE</p>
+              <h2>Current crossing</h2>
+            </div>
+            <span>Direct pedestrian route</span>
+          </div>
+          <div id="baseline-view" class="scene">
+            <svg
+              aria-label="Current dispatch movement"
+              role="img"
+              viewBox="-28 -12 56 24"
+            ></svg>
+            <div class="cesium" hidden></div>
+          </div>
+          <p id="baseline-live" class="scene-caption"></p>
+        </section>
+        <section class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">AFTER</p>
+              <h2>Proposed crossing</h2>
+            </div>
+            <span id="proposal-label"></span>
+          </div>
+          <div id="proposal-view" class="scene">
+            <svg
+              aria-label="Proposed dispatch movement"
+              role="img"
+              viewBox="-28 -12 56 24"
+            ></svg>
+            <div class="cesium" hidden></div>
+          </div>
+          <p id="proposal-live" class="scene-caption"></p>
+        </section>
+      </div>
+      <p id="render-status" role="status" class="quiet">
+        Plan view is always available. 3D uses the simulated positions in a
+        rendered dispatch scene; drag to orbit, scroll to zoom.
+      </p>
+      <section class="results">
+        <div class="section-title">
+          <div>
+            <p class="eyebrow">CALCULATED FROM TRAJECTORIES</p>
+            <h2>Exposure and operating cost</h2>
+          </div>
+          <p>Full 120-second trial · all arrivals retained</p>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Indicator</th>
+                <th scope="col">Before</th>
+                <th scope="col">After</th>
+                <th scope="col">Change (after − before)</th>
+              </tr>
+            </thead>
+            <tbody id="metrics"></tbody>
+          </table>
+        </div>
+      </section>
+      <div class="details-grid">
+        <section class="encounters">
+          <p class="eyebrow">INSPECT THE MODEL</p>
+          <h2>Proximity encounters</h2>
+          <p>
+            Choose an episode to pause and highlight both actors at its first
+            sampled moment.
+          </p>
+          <div id="encounters"></div>
+        </section>
+        <section class="assumptions">
+          <p class="eyebrow">READ BEFORE INTERPRETING</p>
+          <h2>What this trial assumes</h2>
+          <p>
+            A single deterministic seeded trial of a fictional bay. These are
+            simulated exposure proxies, not measured safety outcomes, injury
+            probabilities or validated risk reductions.
+          </p>
+          <details open>
+            <summary>Metrics and accounting</summary>
+            <p>
+              Encounter: one continuous episode for a particular person/forklift
+              pair with centre distance strictly below the selected threshold. A
+              clear 0.1-second sample ends an episode. Exposure is the sum of
+              pair-seconds (overlapping pairs count separately). Conflict
+              occupancy is time with at least one person and vehicle footprint
+              in the buffered crossing, counted once per step.
+            </p>
+            <p>
+              Waiting is active time moving less than 1 cm per 0.1-second step,
+              plus time queued after arrival. Person/vehicle waits sum across
+              actors. Journey distance sums metres actually travelled, including
+              unfinished jobs. Completed means the actor reached its original
+              destination; backlog includes active, arrival-queued and
+              not-yet-arrived jobs at 120 seconds. All metrics cover the same
+              fixed window; changing demand changes both sides.
+            </p>
+          </details>
+          <details open>
+            <summary>Movement, footprints and controls</summary>
+            <p>
+              Baseline: direct crossing at x = 0 m, forklift limit 3 m/s, 35% of
+              vehicles yield, no gate. Proposal settings never edit the
+              baseline. A disabled barrier and gate with the baseline
+              speed/yielding settings gives identical runs.
+            </p>
+            <p>
+              Barrier rails at y = ±4 m channel people to the 2 m opening at x =
+              8 m. Both directions retain their original destinations. Vehicle
+              lanes are y = ±1.6 m. Conservative circular footprints: people
+              radius 0.35 m; loaded forklifts radius 1.5 m. The conflict area is
+              the crossing strip x = crossing ±1.5 m, y = ±3.5 m, buffered by
+              each actor’s radius.
+            </p>
+            <p>
+              A compliant gate selects the longest-waiting approaching kind,
+              then holds that phase until its buffered zone clears. Noncompliant
+              actors explicitly ignore this gate; the barrier still channels
+              them. Without a gate, the yielding fraction stops vehicles for
+              approaching people. The same seeded per-actor decisions are
+              reused. Same-lane followers retain footprint clearance; arrivals
+              queue off-scene until that clearance is available and their queue
+              wait is counted.
+            </p>
+            <p>
+              People limit 1.35 m/s; vehicles use the selected limit.
+              Acceleration is 1.5 / 1 m/s² respectively; braking targets 2 m/s²
+              with a discrete stop-line guard. A newly imposed limit can trigger
+              an immediate stop in this simplified solver, so it does not
+              establish physically feasible braking distances. Rules react to
+              the previous 0.1-second sample, with no extra reaction latency.
+              This is a simple crossing/queue model: no steering, evasive
+              manoeuvres, realistic forklift turning envelope, overtaking, load
+              dynamics or injury model. Low yielding/compliance may allow
+              overlapping cross-traffic footprints; these are unresolved
+              conflicts, not collision physics.
+            </p>
+            <p>
+              Arrivals are generated at roughly 1.6-second intervals with seeded
+              jitter, alternating person and vehicle jobs and both travel
+              directions. The seed is a reproducibility tool, not an uncertainty
+              estimate. Gate and barrier are independent: a gate can also
+              control the direct crossing.
+            </p>
+          </details>
+        </section>
+      </div>
+      <footer>
+        seeo · Fictional facility exploration · Generated facility photographs
+        remain static context in the original demo.
+      </footer>
+    </main>
+    <script type="module" src="/src/seeo-demo/dispatch-main.js"></script>
+  </body>
+</html>

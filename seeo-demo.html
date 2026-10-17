@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#111d29" />
+    <title>seeo · Facility intelligence demo</title>
+    <meta
+      name="description"
+      content="Explore a fictional distribution centre in 3D: workers, forklifts, truck docking, camera estimates and event review. An interactive seeo design prototype."
+    />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="seeo facility scenario"
+        >seeo<span class="brand-dot">.</span></a
+      >
+      <span class="product-name">Facility intelligence</span>
+      <span class="prototype-badge">DESIGN PROTOTYPE</span>
+      <a
+        class="globe-link"
+        href="https://github.com/bilawalsidhu/gods-eye-view"
+        target="_blank"
+        rel="noopener noreferrer"
+        >God’s Eye View ↗</a
+      >
+    </header>
+    <div class="demo-notice">
+      <span class="notice-dot"></span
+      ><strong>Fictional distribution centre</strong
+      ><span
+        >All layouts, cameras, events and policies are synthetic. No customer
+        data or live feeds.</span
+      >
+    </div>
+    <main>
+      <section class="page-heading">
+        <div>
+          <p class="eyebrow">FACILITIES / WAREHOUSE SCENARIO</p>
+          <h1>Understand where to act.</h1>
+          <p class="subheading">
+            Explore a dispatch crossing, inspect the evidence, then review a
+            proposed change.
+          </p>
+        </div>
+        <div class="site-tag">
+          <span class="site-icon">⌖</span>
+          <div>
+            <strong>Example Logistics — Distribution Centre</strong
+            ><span>Warehouse + truck yard · fictional local coordinates</span>
+          </div>
+        </div>
+      </section>
+      <a id="dispatch-comparison-link" href="./dispatch-comparison.html" style="display:block;background:#183e43;color:#fff;padding:16px 22px;border-radius:8px;margin:0 0 20px;text-decoration:none;font-weight:650">Test a change ↗ <span style="font-size:12px;font-weight:400;margin-left:12px">Compare the same dispatch shift before and after a barrier + gate</span></a>
+      <nav class="story" aria-label="Guided scenario">
+        <button data-step="overview" class="active">
+          <span>01</span>Find the pattern
+        </button>
+        <button data-step="evidence"><span>02</span>Inspect an event</button>
+        <button data-step="coverage"><span>03</span>Check coverage</button>
+        <button data-step="proposal"><span>04</span>Review a change</button>
+      </nav>
+      <section class="workspace">
+        <div class="map-panel">
+          <div class="map-toolbar">
+            <div>
+              <p class="eyebrow">FACILITY VIEW</p>
+              <h2>Warehouse & yard</h2>
+            </div>
+            <div class="segmented" aria-label="Map view">
+              <button id="expand-view" aria-pressed="false">Expand view</button>
+              <button id="plan-view" class="active" aria-pressed="true">
+                Plan</button
+              ><button id="model-view" aria-pressed="false">3D model</button>
+            </div>
+          </div>
+          <div class="scenario-controls" aria-label="Demo scenarios">
+            <button data-scenario="busy">▶ Busy shift</button
+            ><button data-scenario="aisle">Aisle traffic</button
+            ><button data-scenario="dispatch">Dispatch staging</button
+            ><button data-scenario="packing">Packing activity</button>
+          </div>
+          <p id="scenario-caption" class="scenario-caption">
+            SIMULATED · 4 forklifts · 7 people · 1 truck &amp; trailer · select
+            a scenario or camera
+          </p>
+          <div class="layer-toolbar">
+            <label
+              ><input type="checkbox" id="show-events" checked />Event
+              markers</label
+            ><label
+              ><input type="checkbox" id="show-coverage" />Estimated camera
+              view</label
+            ><label
+              ><input type="checkbox" id="show-proposal" />Proposed
+              barrier</label
+            >
+          </div>
+          <section class="replay-panel" aria-label="Simulated crossing replay">
+            <div class="replay-header">
+              <div>
+                <p class="eyebrow">SIMULATED ROUTES · EX-003</p>
+                <h3>Forklift meets picker at dispatch</h3>
+              </div>
+              <span class="simulation-pill">SIMULATION</span>
+            </div>
+
+            <div class="replay-controls">
+              <button
+                id="replay-play"
+                class="primary-button"
+                aria-label="Play simulated replay"
+              >
+                ▶ Play</button
+              ><button id="replay-reset" aria-label="Restart simulated replay">
+                ↺ Restart</button
+              ><button id="replay-event">Jump to event</button
+              ><label class="speed-label"
+                >Speed
+                <select id="replay-speed" aria-label="Replay speed">
+                  <option value="0.5">0.5×</option>
+                  <option value="1" selected>1×</option>
+                  <option value="2">2×</option>
+                </select></label
+              >
+            </div>
+            <div class="replay-scrub">
+              <label for="replay-time">Replay time</label
+              ><input
+                id="replay-time"
+                type="range"
+                min="0"
+                max="40"
+                step="0.1"
+                value="0"
+                aria-label="Simulated replay time in seconds"
+              /><output id="replay-clock" for="replay-time"
+                >00:00 / 00:40</output
+              >
+            </div>
+            <div class="replay-summary">
+              <span id="replay-phase">Approaching the crossing</span
+              ><span id="replay-separation">Model-space separation: —</span>
+            </div>
+
+            <details class="replay-help">
+              <summary>About this simulation</summary>
+              <p class="replay-intro">
+                FL-01 carries a pallet out of storage as P-01 walks towards
+                dispatch. Scrub the same moment in plan, 3D and the evidence
+                schematic.
+              </p>
+              <p class="replay-disclaimer">
+                Authored paths, not live tracking. Distances come from this
+                fictional model. The proposed barrier does not reroute this
+                historical simulation.
+              </p>
+            </details>
+          </section>
+          <div class="scene-wrap">
+            <div id="plan" aria-label="Interactive warehouse floor plan"></div>
+            <div
+              id="model"
+              hidden
+              aria-label="Interactive 3D warehouse model"
+            ></div>
+            <div id="model-status" role="status" hidden></div>
+            <div class="map-key">
+              <span><i class="key-event"></i>Sample event</span
+              ><span><i class="key-camera"></i>Camera</span
+              ><span><i class="key-unknown"></i>Unmonitored</span>
+            </div>
+          </div>
+          <div id="truck-status" class="layer-status" role="status"></div>
+          <div id="layer-status" class="layer-status" role="status"></div>
+          <div class="map-caption">
+            <span
+              >Local metres · select an area or camera · 3D: drag to orbit</span
+            ><span
+              ><button id="dock-view">Watch truck dock</button>
+              <button id="crossing-view">View crossing close-up</button>
+              <button id="reset-view">Fit whole site</button></span
+            >
+          </div>
+
+          <div class="time-panel">
+            <div class="time-heading">
+              <div>
+                <p class="eyebrow">ILLUSTRATIVE SHIFT · 06:00–14:00</p>
+                <strong id="window-label">Full shift</strong>
+              </div>
+              <div class="segmented small">
+                <button data-window="shift" class="active">Full shift</button
+                ><button data-window="morning">06:00–10:00</button
+                ><button data-window="late">10:00–14:00</button>
+              </div>
+            </div>
+            <div
+              id="timeline"
+              class="timeline"
+              aria-label="Sample event timeline"
+            ></div>
+            <div class="time-labels">
+              <span>06:00</span><span>08:00</span><span>10:00</span
+              ><span>12:00</span><span>14:00</span>
+            </div>
+          </div>
+        </div>
+        <aside class="detail-panel" aria-label="Selected area details">
+          <div id="details" aria-live="polite"></div>
+        </aside>
+      </section>
+      <section class="lower-grid">
+        <div class="insight-card">
+          <p class="eyebrow">WHAT THIS VIEW HELPS YOU DO</p>
+          <h3 id="story-title">Find a recurring interaction.</h3>
+          <p id="story-copy">
+            The dispatch crossing has repeated sample interactions. Select it to
+            see the associated events and camera context.
+          </p>
+        </div>
+        <div class="insight-card next-card">
+          <p class="eyebrow">ONE COHERENT OPERATION</p>
+          <h3>Receiving → storage → dispatch.</h3>
+          <p>
+            Four forklifts, seven people and one truck with trailer follow
+            authored routes. A rack-occluded patch and an unavailable camera
+            show the limits of monitoring. Customer geometry and evidence can
+            follow after this design is reviewed.
+          </p>
+        </div>
+      </section>
+      <p class="footer-note">
+        Prototype only · Coverage shapes are estimates, not detection
+        guarantees. Event counts are not exposure-adjusted risk scores. A
+        proposed layout does not predict safety outcomes.
+      </p>
+    </main>
+    <dialog id="camera-dialog" aria-labelledby="camera-title">
+      <div class="dialog-heading">
+        <div>
+          <p class="eyebrow">CAMERA CONCEPT · SYNTHETIC</p>
+          <h2 id="camera-title">Camera view</h2>
+        </div>
+        <button id="close-camera" aria-label="Close camera image">×</button>
+      </div>
+      <div id="camera-content"></div>
+      <button class="primary-button" id="camera-done">
+        Return to facility
+      </button>
+    </dialog>
+    <dialog id="evidence-dialog" aria-labelledby="evidence-title">
+      <div class="dialog-heading">
+        <div>
+          <p class="eyebrow">SAMPLE EVIDENCE</p>
+          <h2 id="evidence-title">Illustrative event</h2>
+        </div>
+        <button id="close-evidence" aria-label="Close sample evidence">
+          ×
+        </button>
+      </div>
+      <div id="evidence-content"></div>
+      <button class="primary-button" id="evidence-done">
+        Return to facility
+      </button>
+    </dialog>
+    <script type="module" src="/src/seeo-demo/main.js"></script>
+  <script>if(location.pathname.endsWith("seeo-demo.html")) document.getElementById("dispatch-comparison-link").href="./dispatch-comparison.html?from=local";</script>
+</body>
+</html>
