@@ -1,6 +1,7 @@
 import "./loading.css";
 import "./pitch.css";
 import { compareLoading, loadingFrame } from "./loading.js";
+import { registerLoadingPresets } from "./loading-presets.js";
 import { registerLoadingLifecycle } from "./loading-lifecycle.js";
 import { createProductivityView } from "./productivity-view.js";
 import { createLoadingScene } from "./loading-scene.js";
@@ -210,11 +211,7 @@ form.addEventListener(
     ($("run-status").textContent =
       "Settings changed. Rerun to apply them to both trial schedules."),
 );
-$("equal").onclick = () => {
-  form.elements.staging.value = 24;
-  form.elements.checker.value = 12;
-  rerun();
-};
+registerLoadingPresets({ form, equal: $("equal"), proposed: $("proposed"), rerun });
 $("play").onclick = () => {
   if (time >= comparison.baseline.config.window) time = 0;
   playing = !playing;
