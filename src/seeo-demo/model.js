@@ -1,3 +1,5 @@
+import { fusionSources, fusionNetworks, fusionHub, fusionPathPoint } from "./fusion.js";
+import { fusionSymbol } from "./fusion-view.js";
 import * as Cesium from "cesium";
 import { areas, cameras, eventsInWindow } from "./data.js";
 import { routes, getReplayFrame } from "./replay.js";
@@ -6,7 +8,7 @@ import { resolveFacilityHits, facilityFitBounds } from "./sceneInteraction.js";
 // No real site anchor or external imagery. The model uses local metres only.
 export function createFacilityModel(
   container,
-  { selectArea, openEvidence, openCamera },
+  { selectArea, openEvidence, openCamera, selectFusion },
 ) {
   const viewer = new Cesium.Viewer(container, {
     baseLayer: false,
@@ -248,7 +250,75 @@ export function createFacilityModel(
       },
     });
   }
+  // Small category glyphs keep the spatial catalog identifiable without full names.
+  function fusionGlyph(node, available) {
+    const ink = available ? node.color : '#88969b';
+    const shapes = {
+      camera: '<rect x="3" y="7" width="13" height="11" rx="2"/><path d="M16 10l6-3v11l-6-3z"/>',
+      plc: '<rect x="6" y="6" width="12" height="12" rx="1"/><path d="M3 8h3m-3 4h3m-3 4h3M18 8h3m-3 4h3m-3 4h3M8 3v3m4-3v3m4-3v3M8 18v3m4-3v3m4-3v3"/>',
+      sensor: '<path d="M12 2l10 10-10 10L2 12z"/><circle cx="12" cy="12" r="3" fill="white"/>',
+      network: '<path d="M2 8q10-10 20 0M6 12q6-6 12 0M10 16q2-2 4 0" fill="none" stroke-width="3"/><circle cx="12" cy="20" r="2"/>',
+    };
+    return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="-2 -2 28 28"><g fill="${ink}" stroke="white" stroke-width="3" stroke-linejoin="round" paint-order="stroke">${shapes[node.type]}</g><g fill="${ink}" stroke="${ink}" stroke-width="1.5" stroke-linejoin="round">${shapes[node.type]}</g></svg>`)}`;
+  }
+  const fusionEntities = [];
+  const fusionPackets = new Map();
+  const fusionSourceLabels = new Map();
+  let fusionSelected = null;
+  function updateFusionLabelDetail() {
+    const compact = container.clientWidth < 600;
+    for (const [id, entity] of fusionSourceLabels) {
+      entity.label.show = !compact || id === fusionSelected;
+    }
+    viewer.scene.requestRender();
+  }
+  let fusionVisible = false;
+  function renderFusion(fusion) {
+    for (const entity of fusionEntities) viewer.entities.remove(entity);
+    fusionEntities.length = 0; fusionPackets.clear(); fusionSourceLabels.clear();
+    fusionSelected = fusion?.selected;
+    const wasVisible = fusionVisible;
+    fusionVisible = Boolean(fusion?.visible);
+    // The information layer has its own labels; physical geometry and original
+    // camera pick targets remain mounted underneath and return to full labels off.
+    for (const entity of viewer.entities.values) {
+      if (entity.label && !entity.id.startsWith('fusion:') && entity.id !== 'proposal-label') entity.label.show = !fusionVisible;
+    }
+    if (!fusionVisible) { viewer.scene.requestRender(); return; }
+    const add = options => { const entity=viewer.entities.add(options); fusionEntities.push(entity); return entity; };
+    for (const source of fusionSources.filter(s=>s.available&&!fusion.excluded.includes(s.id))) {
+      add({ id:`fusion-flow:${source.id}`, polyline: { positions:Array.from({length:33},(_,i)=>point(...fusionPathPoint(source.id,i/32))), width:fusion.selected===source.id||fusion.selected===source.network?3.2:1.5, material:color(source.color,.65), arcType:Cesium.ArcType.NONE } });
+      for (let i=0;i<2;i++) {
+        const packet=add({id:`fusion-packet:${source.id}-${i}`,position:point(...source.position),point:{pixelSize:7,color:color(source.color),outlineColor:color('#ffffff'),outlineWidth:1.5,disableDepthTestDistance:Infinity}});
+        fusionPackets.set(`${source.id}-${i}`,packet);
+      }
+    }
+    for (const node of [...fusionSources,...fusionNetworks,fusionHub]) {
+      const available=node.available!==false&&!fusion.excluded.includes(node.id);
+      const hub=node.type==='hub', network=node.type==='network';
+      if(hub) {
+        add({id:'fusion-glow:hub',position:point(...node.position),orientation:Cesium.Transforms.headingPitchRollQuaternion(point(...node.position),new Cesium.HeadingPitchRoll()),ellipsoid:{radii:new Cesium.Cartesian3(5.1,5.1,.2),material:color(node.color,.14),outline:true,outlineColor:color(node.color,.5)}});
+        add({id:'fusion-ring:hub',position:point(...node.position),orientation:Cesium.Transforms.headingPitchRollQuaternion(point(...node.position),new Cesium.HeadingPitchRoll()),ellipsoid:{radii:new Cesium.Cartesian3(4.2,4.2,.13),material:color(node.color,.09),outline:true,outlineColor:color(node.color,.6)}});
+      }
+      if (hub) add({id:'fusion-core:hub',position:point(...node.position),ellipsoid:{radii:new Cesium.Cartesian3(2.1,2.1,2.1),material:color('#0a9584',.8),outline:true,outlineColor:color('#70d8c2')}});
+      const label=hub?'seeo FUSION\nDIGITAL TWIN':network?(node.id==='AP-W'?'Wi-Fi West':'Wi-Fi East'):`${fusionSymbol(node)} ${node.id}${available?'': ' ×'}`;
+      const nodeEntity = add({id:`fusion:${node.id}`,position:point(...node.position), label:{text:label,font:hub?'bold 17px sans-serif':'bold 11px sans-serif',fillColor:color(available?node.color:'#72828c'),showBackground:true,backgroundColor:color(fusion.selected===node.id?'#d4f3e8':'#ffffff',.94),backgroundPadding:new Cesium.Cartesian2(hub?12:7,hub?8:5),outlineColor:color('#ffffff'),outlineWidth:1,style:Cesium.LabelStyle.FILL_AND_OUTLINE,disableDepthTestDistance:Infinity,pixelOffset:new Cesium.Cartesian2(0,hub?-26:-21)},billboard:hub?undefined:{image:fusionGlyph(node,available),width:network?25:21,height:network?25:21,disableDepthTestDistance:Infinity}});
+      if (!hub && !network) fusionSourceLabels.set(node.id, nodeEntity);
+    }
+    updateFusionLabelDetail();
+    viewer.scene.requestRender();
+    if(!wasVisible) fitSite();
+  }
+  function updateFusion(frame) {
+    if(!fusionVisible)return;
+    for (const packet of frame.packets) {
+      const entity=fusionPackets.get(packet.id);
+      if(entity) entity.position=point(...packet.position);
+    }
+    viewer.scene.requestRender();
+  }
   function render(state) {
+    fusionEntities.length=0;fusionPackets.clear();
     viewer.entities.removeAll();
     actorParts.clear();
     box("site-base", -2, -2, 118, 70, -1, 0.3, "#d1dce1");
@@ -311,6 +381,8 @@ export function createFacilityModel(
       }
     for (const x of [32, 42, 52])
       box(`packing:${x}`, x, 10, 6, 3, 0.1, 1.2, "#b5c5cf");
+    box("receiving-conveyor", 8, 6.5, 14, 1.5, 0.2, 0.8, "#6c899c");
+    for (let i=0;i<12;i++) box(`receiving-roller:${i}`,9+i,6.5,.12,1.5,1,.08,"#c8d6dc");
     box("conveyor", 28, 6.5, 32, 1.5, 0.2, 0.8, "#6c899c");
     for (let x = 29; x < 60; x += 1.5)
       box(`roller:${x}`, x, 6.5, 0.12, 1.5, 1, 0.07, "#b9ccd6");
@@ -472,6 +544,7 @@ export function createFacilityModel(
       addActor(route);
     }
     updateFrame(getReplayFrame(0));
+    renderFusion(state.fusion);
     viewer.scene.requestRender();
   }
   let scenarioFocus = null;
@@ -491,7 +564,7 @@ export function createFacilityModel(
     const heading = Cesium.Math.toRadians(-23),
       pitch = Cesium.Math.toRadians(-57);
     const corners = [-59, 59].flatMap((x) =>
-      [-36, 34].flatMap((y) => [-1, 7].map((z) => [x, y, z])),
+      [-36, 34].flatMap((y) => [-1, fusionVisible ? 16 : 7].map((z) => [x, y, z])),
     );
     const range = facilityFitBounds(
       corners,
@@ -514,7 +587,8 @@ export function createFacilityModel(
   const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
   handler.setInputAction((click) => {
     const selection = pickAt(click.position);
-    if (selection?.type === "camera") openCamera(selection.id);
+    if (selection?.type === "fusion") selectFusion(selection.id);
+    else if (selection?.type === "camera") openCamera(selection.id);
     else if (selection?.type === "area") selectArea(selection.id);
     else if (selection?.type === "event") openEvidence(selection.id);
   }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
@@ -600,20 +674,20 @@ export function createFacilityModel(
     viewer.camera.lookAtTransform(pose.transform);
     viewer.scene.requestRender();
   }
-  const observer = new ResizeObserver(() =>
-    scenarioFocus
-      ? focusScenario(scenarioFocus)
-      : dockFocused
-        ? dockView()
-        : closeView
-          ? closeUp()
-          : fitSite(),
-  );
+  const observer = new ResizeObserver(() => {
+    updateFusionLabelDetail();
+    if (scenarioFocus) focusScenario(scenarioFocus);
+    else if (dockFocused) dockView();
+    else if (closeView) closeUp();
+    else fitSite();
+  });
   observer.observe(container);
   reset();
   return {
     render,
     updateFrame,
+    renderFusion,
+    updateFusion,
     closeUp,
     dockView,
     focusScenario,

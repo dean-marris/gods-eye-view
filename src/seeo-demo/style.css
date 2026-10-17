@@ -1375,3 +1375,32 @@ h1 {
 @media(max-width: 560px) { .analysis-heading { padding: 12px; }.analysis-heading h2 { font-size: 16px; }.analysis-heading .eyebrow { font-size: 8px; }.analysis-heading button { max-width: 120px; font-size: 11px; }.analysis-context { padding: 8px 12px; }.analysis-context img { width: 90px; height: 65px; }.analysis-context p { font-size: 9px; } }
 
 .analysis-modes {display:flex;gap:8px;padding:9px 22px;background:#dfe9df;flex:none;flex-wrap:wrap}.analysis-modes button {padding:9px 14px;border:1px solid #9cb7ab;border-radius:5px;background:white;color:#183e43;cursor:pointer}.analysis-modes button[aria-pressed="true"] {background:#183e43;color:white}
+
+/* Additive information layer: site remains the main canvas. */
+.fusion-toolbar {display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:10px 16px;background:#e8f5f1;border-bottom:1px solid #b9d9d2;color:#265b58;font-size:11px}
+.fusion-toolbar label {display:flex;align-items:center;gap:5px;font-size:13px;white-space:nowrap}
+.fusion-toolbar button,.fusion-actions button,#fusion-include {border:1px solid #a8ccc4;background:#fff;color:#17675d;border-radius:6px;padding:6px 9px;font:inherit;cursor:pointer}
+.fusion-toolbar small {font-size:9px;letter-spacing:.08em;margin-left:auto}
+.fusion-toolbar i {display:inline-block;width:3px;height:3px;border-radius:50%;background:#84b4ab;margin:0 4px 2px}
+.fusion-node {cursor:pointer}.fusion-node-label {font-size:1.6px;font-weight:700;fill:#264f5b;paint-order:stroke;stroke:#f5faf8;stroke-width:.5px;stroke-linejoin:round}
+.fusion-node.selected>rect {stroke:#132f3e;stroke-width:.45px}
+.fusion-node:focus {outline:none}.fusion-node:focus>rect {stroke:#111;stroke-width:.65px}
+#fusion-details {padding:18px;background:linear-gradient(145deg,#eff8f4,#f7fbfc);border-bottom:1px solid #c5ddd6}
+#fusion-details[hidden] {display:none}
+.fusion-detail-head {display:flex;justify-content:space-between;align-items:center;gap:10px}.fusion-detail-head h2 {font-size:21px;margin:2px 0 8px}.fusion-detail-head p {font-size:9px;margin:0}
+.fusion-type {font-size:10px;text-transform:uppercase;border:1px solid #b6d7cc;padding:4px 6px;border-radius:5px;color:#17675d}
+.fusion-chain {font-size:11px;line-height:1.7;color:#54736e;margin:6px 0 12px}.fusion-count {font-size:12px;color:#365f57}.fusion-count strong {font-size:23px;color:#067d70}.fusion-count span {font-size:11px;color:#687c7c}
+.fusion-context {background:#fff;border-left:3px solid #21917f;padding:11px 12px;margin:12px 0}.fusion-context.incomplete {border-color:#bf8541;background:#fff8ed}
+.fusion-context small {display:block;color:#5c7971;font-size:9px;letter-spacing:.06em}.fusion-context strong {font-size:12px;line-height:1.7;display:block;margin-top:4px}.fusion-context ul {font-size:11px;padding-left:16px;color:#607970;line-height:1.7;margin:6px 0 0}
+.fusion-fine {font-size:10px!important;line-height:1.65!important;color:#637873}.fusion-reading {font-size:12px;line-height:1.7}.fusion-actions {display:flex;gap:7px;font-size:11px}
+.fusion-source-list {margin-top:13px;font-size:11px}.fusion-source-list summary {cursor:pointer;font-weight:600;color:#41655c}.fusion-source-list>div {display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:10px}.fusion-source-list button {text-align:left;background:#fff;border:1px solid #d6e5df;border-radius:5px;padding:7px 5px;font-size:10px;cursor:pointer}.fusion-source-list button[aria-pressed=true] {border-color:#228e7e;background:#e1f4ec}.fusion-source-list button span {font-size:9px;font-weight:800}
+@media(max-width:600px){.fusion-toolbar {padding:8px 10px;gap:6px;font-size:9px}.fusion-toolbar>span{flex-basis:100%;order:3}.fusion-toolbar small{font-size:8px}.fusion-toolbar button{font-size:10px}.fusion-toolbar label{font-size:12px}#fusion-details{padding:15px}}
+
+/* Keep the full site legible; the map panel scrolls to its lower controls. */
+@media (min-width: 821px) and (min-height: 600px) {
+ .map-panel:not(.expanded-view) .scene-wrap {flex:1 0 360px;min-height:360px;}
+}
+.expanded-view .scene-wrap {min-height:360px;}
+.fusion-toolbar>span {color:#466d68}
+.fusion-camera-image {border:1px solid #a8ccc4;background:#fff;color:#17675d;border-radius:6px;padding:6px 9px;font:inherit;font-size:11px;cursor:pointer;margin-top:6px}
+#fusion-details:focus {outline:2px solid #4caa97;outline-offset:-2px}

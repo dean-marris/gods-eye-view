@@ -1,3 +1,5 @@
+import { fusionFrame, fusionSnapshot } from "./fusion.js";
+import { fusionPlanMarkup, fusionDetailsMarkup } from "./fusion-view.js";
 import { areaViews, cameraArea } from "./areaViews.js";
 import { areaImages } from "./areaImages.js";
 import "./style.css";
@@ -27,6 +29,9 @@ const state = {
   view: "plan",
   step: "overview",
 };
+const fusion = { visible: true, paused: false, selected: 'hub', excluded: [] };
+let flowTime = 0, flowRaf, flowLast, fusionDetailsTime = -1;
+const motionPreference = matchMedia('(prefers-reduced-motion: reduce)');
 let model;
 let modelLoading = false;
 const $ = (id) => document.getElementById(id);
@@ -68,6 +73,7 @@ function updateReplay() {
       : "▶ Play simulation";
   }
   if (state.view === "model") model?.updateFrame(frame);
+  if ($( "fusion-context-text")) { updateFusionReadings(fusionSnapshot(replay.seconds, fusion.excluded)); }
 }
 
 function animateReplay(now) {
@@ -145,8 +151,9 @@ function planMarkup() {
       })
       .join("")}
     ${[7, 16, 25, 34].flatMap((x) => [28, 39].map((y) => `<g pointer-events="none"><rect x="${x}" y="${y}" width="5" height="7" rx=".25" fill="#dce4e9" stroke="#adbdc8" stroke-width=".2"/><path d="M${x + 1} ${y + 0.5}V${y + 6.5}M${x + 2.5} ${y + 0.5}V${y + 6.5}M${x + 4} ${y + 0.5}V${y + 6.5}" stroke="#bccbd5" stroke-width=".18"/></g>`)).join("")}
+    <g pointer-events="none"><rect x="8" y="6.5" width="14" height="1.5" fill="#8fa7b4"/>${Array.from({length:12},(_,i)=>`<path d="M${9+i} 6.5V8" stroke="#d5e2e7" stroke-width=".2"/>`).join('')}</g>
     ${[32, 42, 52].map((x) => `<rect x="${x}" y="10" width="6" height="3" rx=".2" fill="#d8e1e6" pointer-events="none"/>`).join("")}
-    <g pointer-events="none"><rect x="28" y="6.5" width="32" height="1.5" fill="#8fa7b4"/>${Array.from({ length: 28 }, (_, i) => `<path d="M${29 + i} 6.5V8" stroke="#d5e2e7" stroke-width=".2"/>`).join("")}<rect x="5" y="56" width="28" height="10" rx=".4" fill="#e3ede9"/><path d="M12 66V57H43V51" stroke="#8fb9aa" stroke-width="1.6"/><text x="6" y="60" class="svg-label">Employee entrance</text><text x="6" y="62.5" class="svg-secondary">Separate pedestrian approach</text><rect x="19" y="41" width="5" height="7" fill="url(#hatch)" opacity=".85"/><text x="5" y="51" class="svg-secondary">Hatched patch: illustrative rack blind spot</text>${[24, 35, 46].map((y, i) => `<rect x="84" y="${y}" width="13" height="5" fill="#b8c8d1" stroke="#fff" stroke-width=".2"/><text x="90" y="${y + 3}" text-anchor="middle" class="svg-secondary">BAY ${i + 1}</text>`).join("")}<g transform="translate(95 17)"><rect x="-4" y="-1.25" width="7" height="2.5" fill="#8a9aa9"/><rect x="3" y="-1.1" width="2" height="2.2" fill="#526c80"/></g><text x="109" y="61" text-anchor="middle" class="svg-secondary">↑ ONE WAY</text></g>
+    <g pointer-events="none"><rect x="28" y="6.5" width="32" height="1.5" fill="#8fa7b4"/>${Array.from({ length: 28 }, (_, i) => `<path d="M${29 + i} 6.5V8" stroke="#d5e2e7" stroke-width=".2"/>`).join("")}<rect x="5" y="56" width="28" height="10" rx=".4" fill="#e3ede9"/><path d="M12 66V57H43V51" fill="none" stroke="#8fb9aa" stroke-width="1.6"/><text x="6" y="60" class="svg-label">Employee entrance</text><text x="6" y="62.5" class="svg-secondary">Separate pedestrian approach</text><rect x="19" y="41" width="5" height="7" fill="url(#hatch)" opacity=".85"/><text x="5" y="51" class="svg-secondary">Hatched patch: illustrative rack blind spot</text>${[24, 35, 46].map((y, i) => `<rect x="84" y="${y}" width="13" height="5" fill="#b8c8d1" stroke="#fff" stroke-width=".2"/><text x="90" y="${y + 3}" text-anchor="middle" class="svg-secondary">BAY ${i + 1}</text>`).join("")}<g transform="translate(95 17)"><rect x="-4" y="-1.25" width="7" height="2.5" fill="#8a9aa9"/><rect x="3" y="-1.1" width="2" height="2.2" fill="#526c80"/></g><text x="109" y="61" text-anchor="middle" class="svg-secondary">↑ ONE WAY</text></g>
     <path d="M50 22 V48 M60 22 V48" stroke="#c1ceca" stroke-width=".25" stroke-dasharray="1 1" pointer-events="none"/>
     <g fill="#fff" pointer-events="none">${Array.from({ length: 8 }, (_, i) => `<rect x="50" y="${24 + i * 1.1}" width="10" height=".55"/>`).join("")}</g>
     <text x="55" y="46" text-anchor="middle" class="svg-secondary" transform="rotate(-90 55 46)">PEDESTRIAN CROSSING</text>
@@ -166,6 +173,7 @@ function planMarkup() {
     ${state.events ? visible.map((event) => `<g class="svg-event" role="button" tabindex="0" data-event="${event.id}" aria-label="Open sample ${event.id}, ${event.time}, ${event.type}"><circle cx="${event.x}" cy="${event.y}" r="1.3" fill="#e8a153" fill-opacity=".2"/><circle cx="${event.x}" cy="${event.y}" r=".6" fill="#d88637" stroke="#fff" stroke-width=".2"/></g>`).join("") : ""}
     ${cameras.map((camera) => `<g class="svg-camera" role="button" tabindex="0" data-camera="${camera.id}" aria-label="${camera.id}, ${camera.name}, ${camera.active ? "synthetic camera" : "monitoring unavailable"}"><rect x="${camera.x - 1.5}" y="${camera.y - 1.1}" width="3" height="2.2" rx=".4" fill="${camera.active ? "#237b87" : "#8f9fa8"}" stroke="#fff" stroke-width=".25"/><text x="${camera.x}" y="${camera.y + 0.45}" text-anchor="middle" fill="#fff" font-size="1.15">${camera.id}</text></g>`).join("")}
     ${routeMarkup()}<g id="replay-actors">${actorMarkup(getReplayFrame(replay.seconds))}</g>
+    ${fusionPlanMarkup(fusion)}
     <g pointer-events="none"><path d="M1 70H11M1 69V71M11 69V71" stroke="#778d9b" stroke-width=".2"/><text x="6" y="69" text-anchor="middle" class="svg-secondary">10 m</text><text x="111" y="-2" class="svg-label">N ↑</text><text x="2" y="-2" class="svg-secondary">EXAMPLE LOGISTICS · FICTIONAL SITE · SIMULATED ROUTES</text></g>
   </svg>`;
 }
@@ -184,6 +192,7 @@ function renderDetails() {
 function render() {
   $("plan").innerHTML = planMarkup();
   renderDetails();
+  renderFusionDetails();
   if (["crossing", "dispatch"].includes(state.area)) {
     const entry = document.createElement("button");
     entry.type = "button"; entry.className = "primary-button analysis-entry";
@@ -220,7 +229,8 @@ function render() {
   const [title, copy] = stories[state.step];
   $("story-title").textContent = title;
   $("story-copy").textContent = copy;
-  model?.render(state);
+  model?.render({...state, fusion});
+  syncFusion();
   $("layer-status").textContent =
     `Event markers ${state.events ? "on" : "off"} · Camera estimates ${state.coverage ? "on (cyan)" : "off"} · Proposed barrier ${state.proposal ? "on (green/yellow)" : "off"}`;
   updateReplay();
@@ -255,10 +265,11 @@ function openEvidence(id) {
 
 document.addEventListener("click", (event) => {
   const target = event.target.closest(
-    "[data-analysis],[data-area-image],[data-area],[data-event],[data-camera],[data-window],[data-step]",
+    "[data-fusion],[data-analysis],[data-area-image],[data-area],[data-event],[data-camera],[data-window],[data-step]",
   );
   if (!target) return;
-  if (target.hasAttribute("data-analysis")) { event.preventDefault(); openAnalysis(target); }
+  if (target.dataset.fusion) selectFusion(target.dataset.fusion);
+  else if (target.hasAttribute("data-analysis")) { event.preventDefault(); openAnalysis(target); }
   else if (target.dataset.areaImage) openAreaImage(target.dataset.areaImage);
   else if (target.dataset.area) openAreaImage(target.dataset.area);
   else if (target.dataset.event) openEvidence(target.dataset.event);
@@ -310,6 +321,7 @@ async function setView(view) {
     $(`${id}-view`).classList.toggle("active", id === view);
     $(`${id}-view`).setAttribute("aria-pressed", String(id === view));
   }
+  syncFusion();
   if (view === "plan") {
     $("model-status").hidden = true;
     return;
@@ -324,8 +336,10 @@ async function setView(view) {
         selectArea: openAreaImage,
         openEvidence,
         openCamera,
+        selectFusion,
       });
-      model.render(state);
+      model.render({...state, fusion});
+      syncFusion();
       updateReplay();
       $("model-status").hidden = true;
     } catch (error) {
@@ -337,7 +351,8 @@ async function setView(view) {
     }
   } else {
     model.resize();
-    model.render(state);
+    model.render({...state, fusion});
+    syncFusion();
     updateReplay();
   }
 }
@@ -370,6 +385,94 @@ document.addEventListener("visibilitychange", () => {
   if (document.hidden) dispatchReplay({ type: "pause" });
 });
 render();
+
+function fusionCanMove() {
+ return fusion.visible && !fusion.paused && !motionPreference.matches && !document.hidden && !document.querySelector('dialog[open]');
+}
+function renderFusionDetails() {
+ $('fusion-details').hidden = !fusion.visible;
+ $('fusion-details').innerHTML = fusionDetailsMarkup(fusion, replay.seconds);
+ $('fusion-include')?.addEventListener('click', () => {
+  fusion.excluded = fusion.excluded.includes(fusion.selected) ? fusion.excluded.filter(id=>id!==fusion.selected) : [...fusion.excluded,fusion.selected];
+  refreshFusion();
+ });
+ $('fusion-whole').addEventListener('click',()=>{ $('reset-view').click(); });
+}
+function updateFusionReadings(snapshot) {
+ if (!$('fusion-context-text')) return;
+ $('fusion-context-text').textContent = snapshot.context;
+ $('fusion-context-text').closest('.fusion-context').classList.toggle('incomplete', !snapshot.complete);
+ $('fusion-context-text').previousElementSibling.textContent = `EXAMPLE FUSED DOCK CONTEXT · ${snapshot.time.toFixed(1)} s`;
+ $('fusion-contributions').innerHTML = snapshot.contributions.map(c=>`<li>${c.type.toUpperCase()} ${c.id}: ${c.included?c.signal:'missing input · excluded'}</li>`).join('');
+ const source=snapshot.sources.find(s=>s.id===fusion.selected);
+ if(source&&$('fusion-source-reading')) { $('fusion-source-reading').textContent=source.signal; $('fusion-source-time').textContent=snapshot.time.toFixed(1); }
+}
+function paintFusion() {
+ const frame = fusionFrame(replay.seconds, flowTime, fusion.excluded);
+ if (state.view === 'plan') for (const packet of frame.packets) {
+  const circle=document.querySelector(`[data-fusion-packet="${packet.id}"]`);
+  if(circle) {circle.setAttribute('cx',packet.position[0]);circle.setAttribute('cy',packet.position[1]);}
+ }
+ else model?.updateFusion(frame);
+ if (Math.abs(replay.seconds-fusionDetailsTime)>.15) {updateFusionReadings(frame);fusionDetailsTime=replay.seconds;}
+}
+function flowTick(now) {
+ flowRaf=undefined;
+ if (!fusionCanMove()) {flowLast=undefined;return;}
+ flowTime += flowLast===undefined?0:Math.min(.1,(now-flowLast)/1000);
+ flowLast=now;
+ paintFusion();
+ flowRaf=requestAnimationFrame(flowTick);
+}
+function syncFusion() {
+ if(flowRaf!==undefined) cancelAnimationFrame(flowRaf);
+ flowRaf=undefined;flowLast=undefined;
+ $('fusion-pause').textContent=fusion.paused?'▶ Resume flow':'Ⅱ Pause flow';
+ $('fusion-pause').setAttribute('aria-pressed',String(fusion.paused));
+ $('fusion-pause').disabled=!fusion.visible;
+ $('fusion-motion-status').textContent=!fusion.visible?'FUSION LAYER OFF':motionPreference.matches?'REDUCED MOTION · STATIC LINKS':fusionCanMove()?'SIMULATED CONNECTIONS · INWARD FLOW':'SIMULATED CONNECTIONS · FLOW PAUSED';
+ paintFusion();
+ if(fusionCanMove()) flowRaf=requestAnimationFrame(flowTick);
+}
+function refreshFusion() {
+ const listOpen = $('fusion-details').querySelector('.fusion-source-list')?.open;
+ const focused = document.activeElement;
+ const focusedSource = focused?.dataset?.fusion;
+ const focusedInList = focused?.closest?.('.fusion-source-list');
+ const focusedInPlan = focused?.closest?.('#plan');
+ const focusedInclude = focused?.id === 'fusion-include';
+ $('plan').innerHTML=planMarkup();
+ renderFusionDetails();
+ if(listOpen) $('fusion-details').querySelector('.fusion-source-list').open=true;
+ if(focusedSource && (focusedInList || focusedInPlan)) {
+  const owner=focusedInList ? $('fusion-details') : $('plan');
+  owner.querySelector(`[data-fusion="${focusedSource}"]`)?.focus({preventScroll:true});
+ }
+ if(focusedInclude) $('fusion-include')?.focus({preventScroll:true});
+ model?.renderFusion(fusion);
+ syncFusion();
+}
+function selectFusion(id) {
+ const expanded=document.body.classList.contains('view-expanded');
+ const fromInspector=$('fusion-details').contains(document.activeElement);
+ fusion.selected=id;
+ if(expanded) setExpandedView(false);
+ refreshFusion();
+ const inspector=$('fusion-details');
+ inspector.closest('.detail-panel').scrollTop=0;
+ if(expanded || (window.innerWidth<=820 && !fromInspector)) {
+  inspector.setAttribute('tabindex','-1');
+  inspector.scrollIntoView({block:'nearest'});
+  inspector.focus({preventScroll:true});
+ }
+}
+$('fusion-visible').addEventListener('change',event=>{fusion.visible=event.target.checked;refreshFusion();});
+$('fusion-pause').addEventListener('click',()=>{fusion.paused=!fusion.paused;syncFusion();});
+motionPreference.addEventListener('change',syncFusion);
+document.addEventListener('visibilitychange',syncFusion);
+new MutationObserver(syncFusion).observe(document.body,{subtree:true,attributes:true,attributeFilter:['open']});
+window.addEventListener('pageshow', event=>{if(event.persisted)syncFusion();});
+window.addEventListener('pagehide',()=>{if(flowRaf!==undefined)cancelAnimationFrame(flowRaf);flowRaf=undefined;});
 
 function setExpandedView(expanded) {
   document

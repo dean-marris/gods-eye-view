@@ -1,7 +1,10 @@
+import { resolveFusionPick } from "./fusion.js";
 import { areas, cameras, events } from "./data.js";
 
 // Every visible representation of a camera or area resolves to its owner.
 export function resolveFacilityPick(value) {
+  const fusion = resolveFusionPick(value);
+  if (fusion) return fusion;
   if (typeof value !== "string") return null;
   const [kind, id] = value.split(":");
   if (["area", "label"].includes(kind) && areas.some((area) => area.id === id))
@@ -54,6 +57,8 @@ export function resolveFacilityPick(value) {
     ].includes(kind)
   )
     return { type: "area", id: "storage" };
+  if (["receiving-conveyor", "receiving-roller"].includes(kind))
+    return { type: "area", id: "receiving" };
   if (["packing", "conveyor", "roller", "conveyor-carton"].includes(kind))
     return { type: "area", id: "packing" };
   if (["dock", "dock-label", "dock-frame", "dock-frame-end"].includes(kind))

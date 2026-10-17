@@ -15,6 +15,7 @@ The demonstration helps operations and health-and-safety teams examine a propose
 | Capability | What you can explore |
 | --- | --- |
 | Whole-facility plan and 3D model | Receiving, storage aisles, rear service area, packing cells, dispatch crossing, dispatch bays and truck yard |
+| Sensor fusion layer | Animated camera, conveyor PLC and sensor signals through an illustrative Wi-Fi/site network into a central seeo Fusion hub, in Plan and 3D |
 | Camera context | Selectable camera markers and seven distinct AI-generated, static area images |
 | Recognizable activity | Four forklifts, seven people and an articulated truck reversing into Bay 1 in the facility replay |
 | Scenario playback | Busy shift, aisle traffic, dispatch staging and packing activity; play, pause, restart and seek |
@@ -27,6 +28,14 @@ The demonstration helps operations and health-and-safety teams examine a propose
 
 The facility remains loaded beneath analysis. **Back to facility** or **Escape** returns to the previous selection, camera viewpoint, replay time and scroll position. The comparison is an addendum to the facility, not a replacement for its areas or cameras.
 
+## Connected facility concept
+
+The sensor-fusion overlay illustrates **cameras + conveyor PLCs + sensors → Wi-Fi/site network → seeo Fusion → facility digital twin context**. Animated packets show the direction of information flow. Select a source to inspect its sample signal and interface; select the hub to see which inputs contribute to a combined operational context.
+
+The Fusion controls change the **demo**, including source inclusion and simulated dropout. Missing required inputs make the fused context incomplete. The unavailable rear-service camera stays unavailable. These controls do not operate PLCs or send commands to customer equipment.
+
+Network paths and any wireless indicators are logical illustrations, not a surveyed network, RF coverage guarantee or proof that every industrial device uses Wi-Fi. All readings and connections are synthetic. Real source discovery, protocol adapters, data validation and customer connections remain future integrations.
+
 ## The digital-twin workflow
 
 The intended solution connects operational observation to a testable change:
@@ -36,7 +45,7 @@ The intended solution connects operational observation to a testable change:
 3. **Implement:** record the selected intervention and the date it changed.
 4. **Verify:** compare actual after-change measurements with the baseline and the simulation, accounting for workload and staffing.
 
-**Implemented today:** the fictional facility, replay, camera-style imagery, deterministic crossing experiment and scheduled trailer-loading workflow. **Future integration:** customer geometry, live seeo observations, operational records and measured after-change validation. This repository is a simulation foundation, not yet a customer-calibrated production twin.
+**Implemented today:** the fictional facility, replay, camera-style imagery, illustrative sensor-fusion network, deterministic crossing experiment and scheduled trailer-loading workflow. **Future integration:** customer geometry, live seeo observations, operational records and measured after-change validation. This repository is a simulation foundation, not yet a customer-calibrated production twin.
 
 ## Quick start with Docker
 
@@ -87,7 +96,7 @@ These instructions build the image from source with `docker compose up --build`;
 
 ## Try the solution in five minutes
 
-1. Open the facility, switch between **Plan** and **3D model**, and use **Fit whole site**.
+1. Open the facility, switch between **Plan** and **3D model**, and use **Fit whole site**. Explore the **Sensor fusion** layer: inspect a camera, conveyor PLC, sensor, network hop or the central hub. Pause flow or hide the layer to inspect the underlying facility.
 2. Select an area or camera. Open its generated image and switch between the seven area images.
 3. Start **Busy shift**, try the other facility scenarios, or use **Watch truck dock**.
 4. Choose **Test a change**. Explore the productivity graph: switch measures, select a time to seek both scenes, and inspect the proposed layout changes. Then compare the two layouts with shared playback.
@@ -198,6 +207,7 @@ The build writes `dist/`. Editing local source or building it does not automatic
 | `loading-comparison.html` | Standalone and embedded trailer-loading comparison |
 | `dispatch-comparison.html` | Standalone and embedded dispatch comparison |
 | `src/seeo-demo/main.js` / `model.js` | Facility interactions, replay integration and Cesium model |
+| `src/seeo-demo/fusion.js` / `fusion-view.js` | Simulated source catalog, network paths, packet frames and fused context; Plan/inspector presentation |
 | `src/seeo-demo/replay.js` | Authored facility actor and truck-docking replay |
 | `src/seeo-demo/loading.js` | Deterministic resource schedule, task milestones and clipped loading metrics |
 | `src/seeo-demo/productivity.js` / `productivity-view.js` | Schedule-derived productivity curves, cursor/metric interactions and proposed-layout graphic |

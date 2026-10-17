@@ -157,6 +157,13 @@
               </p>
             </details>
           </section>
+          <section class="fusion-toolbar" aria-label="Sensor fusion controls">
+            <label><input id="fusion-visible" type="checkbox" checked/> <strong>Sensor fusion</strong></label>
+            <span>CAM <i></i> PLC <i></i> SENSOR → Wi-Fi → <b>seeo Fusion</b></span>
+            <button id="fusion-pause" aria-pressed="false">Ⅱ Pause flow</button>
+            <button data-fusion="hub">Inspect Fusion ↗</button>
+            <small id="fusion-motion-status">SIMULATED CONNECTIONS</small>
+          </section>
           <div class="scene-wrap">
             <div id="plan" aria-label="Interactive warehouse floor plan"></div>
             <div
@@ -207,6 +214,7 @@
           </div>
         </div>
         <aside class="detail-panel" aria-label="Selected area details">
+          <section id="fusion-details" aria-label="Fusion inspection"></section>
           <div id="details" aria-live="polite"></div>
         </aside>
       </section>
