@@ -1,3 +1,4 @@
+import { createFacilitySolids } from "./facility-solids.js";
 import { forkliftLoadAssembly, actorPartVisible } from "./forkliftAssembly.js";
 import { facilityRoutes, pedestrianPath, barrierPath, getFacilityFrame, workStations } from "./facilityFlow.js";
 import { fusionGraph, fusionPathPoint } from "./fusion.js";
@@ -45,7 +46,13 @@ export function createFacilityModel(
     );
   const color = (value, alpha = 1) =>
     Cesium.Color.fromCssColorString(value).withAlpha(alpha);
-  function box(id, x, y, w, h, z, height, fill) {
+  const solids = createFacilitySolids(viewer.scene.primitives);
+  function box(id, x, y, w, h, z, height, fill, moving = false) {
+    if (!moving) {
+      const position = point(x + w / 2, y + h / 2, z + height / 2);
+      solids.box(id, position, Cesium.Transforms.headingPitchRollQuaternion(position, new Cesium.HeadingPitchRoll()), new Cesium.Cartesian3(w, h, height), color(fill));
+      return;
+    }
     return viewer.entities.add({
       id,
       position: point(x + w / 2, y + h / 2, z + height / 2),
@@ -146,6 +153,7 @@ export function createFacilityModel(
         component.z,
         component.height,
         component.fill,
+        true,
       ),
     }));
     for (const component of parts) {
@@ -331,6 +339,7 @@ export function createFacilityModel(
   function render(state) {
     fusionEntities.length=0;fusionPackets.clear();
     viewer.entities.removeAll();
+    solids.clear();
     actorParts.clear();
     box("site-base", -2, -2, 118, 70, -1, 0.3, "#d1dce1");
     box("yard-slab", 85, 0, 30, 65, -0.6, 0.5, "#bac8d1");
@@ -578,6 +587,7 @@ export function createFacilityModel(
       );
       addActor(route);
     }
+    solids.commit();
     updateFrame(getFacilityFrame(0,state.flowMode));
     renderFusion(state.fusion);
     viewer.scene.requestRender();
@@ -599,7 +609,7 @@ export function createFacilityModel(
     const heading = Cesium.Math.toRadians(-23),
       pitch = Cesium.Math.toRadians(-57);
     const corners = [-59, 59].flatMap((x) =>
-      [-36, 34].flatMap((y) => [-1, fusionVisible ? 16 : 7].map((z) => [x, y, z])),
+      [-36, fusionVisible ? 62 : 34].flatMap((y) => [-1, fusionVisible ? 12 : 7].map((z) => [x, y, z])),
     );
     const range = facilityFitBounds(
       corners,

@@ -138,9 +138,9 @@ function selectArea(id) {
 
 function planMarkup() {
   const visible = eventsInWindow(state.window);
-  return `<svg viewBox="-4 -6 122 80" role="group" aria-label="Fictional distribution centre warehouse and truck yard">
+  return `<svg viewBox="${fusion.visible ? "-4 -26 122 100" : "-4 -6 122 80"}" role="group" aria-label="Fictional distribution centre warehouse and truck yard">
     <defs><pattern id="grid" width="2" height="2" patternUnits="userSpaceOnUse"><path d="M 2 0 L 0 0 0 2" fill="none" stroke="#e1e8eb" stroke-width=".08"/></pattern><pattern id="hatch" width="1.1" height="1.1" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="1.1" stroke="#b7c2c8" stroke-width=".22"/></pattern></defs>
-    <rect x="-4" y="-6" width="122" height="80" fill="url(#grid)"/>
+    <rect x="-4" y="${fusion.visible ? -26 : -6}" width="122" height="${fusion.visible ? 100 : 80}" fill="url(#grid)"/>
     <rect x="85" y="0" width="30" height="65" rx="1" fill="#dce3e7" stroke="#b0bdc7" stroke-width=".3"/>
     <path d="M104 60V8" stroke="#fff" stroke-width=".2" stroke-dasharray="1 1"/>
     <rect x="0" y="0" width="84" height="54" rx=".5" fill="#fff" stroke="#ffcc00" stroke-width="1"/>

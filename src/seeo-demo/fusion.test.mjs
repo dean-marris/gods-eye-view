@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { fusionSources, fusionNetworks, fusionHub, fusionSnapshot, fusionPathPoint, fusionFrame, resolveFusionPick, fusionGraph } from './fusion.js';
+import { fusionSources, fusionNetworks, fusionHub, fusionProcessor, fusionSnapshot, fusionPathPoint, fusionFrame, resolveFusionPick, fusionGraph } from './fusion.js';
 import { cameras } from './data.js';
 test('representative fusion streams share camera availability and respect unavailable monitoring', () => {
  assert.equal(fusionSources.length, 10);
@@ -26,20 +26,20 @@ test('selection resolves explicit fusion nodes without swallowing camera and cov
 });
 test('direct logical paths reach seeoHub without routing through an AP, with bounded deterministic frames',()=>{
  assert.deepEqual(fusionPathPoint('PLC-P',0),[43,7.2,1.8]);
- assert.deepEqual(fusionPathPoint('PLC-P',.5).slice(0,2),[45.5,11.1]);
+ assert.deepEqual(fusionPathPoint('PLC-P',.5).slice(0,2),[36.5,-4.3999999999999995]);
  assert.deepEqual(fusionPathPoint('PLC-P',1),fusionHub.position);
  assert.throws(()=>fusionPathPoint('missing',0),RangeError);
  assert.throws(()=>fusionPathPoint('C01',Infinity),RangeError);
  assert.throws(()=>fusionPathPoint('C01',-.01),RangeError);
  assert.throws(()=>fusionPathPoint('C01',1.01),RangeError);
- assert.equal(fusionPathPoint('PLC-P',.25)[0],44.25);
- assert.ok(Math.abs(fusionPathPoint('PLC-P',.25)[1]-9.15)<1e-10);
- assert.deepEqual(fusionPathPoint('PLC-P',.75).slice(0,2),[46.75,13.05]);
+ assert.equal(fusionPathPoint('PLC-P',.25)[0],39.75);
+ assert.ok(Math.abs(fusionPathPoint('PLC-P',.25)[1]-1.4)<1e-10);
+ assert.deepEqual(fusionPathPoint('PLC-P',.75).slice(0,2),[33.25,-10.2]);
  assert.throws(()=>fusionFrame(0,NaN),RangeError);
  for(const seconds of [0,1,18,40,100000]) {
   const frame=fusionFrame(28,seconds);
   assert.deepEqual(frame,fusionFrame(28,seconds));
-  for(const p of frame.packets) assert.ok(p.position.every(n=>Number.isFinite(n)&&n>=0&&n<=120));
+  for(const p of frame.packets) assert.ok(p.position.every(n=>Number.isFinite(n)&&n>=-26&&n<=120));
  }
  assert.notDeepEqual(fusionFrame(0,0).packets[0].position,fusionFrame(0,1).packets[0].position);
 });
@@ -81,7 +81,7 @@ test('packets cover all active graph links and source dropout retains only hones
  assert.deepEqual(fusionPathPoint('AP-E',0),[77,18,6]);
  assert.deepEqual(fusionPathPoint('AP-E',1),fusionHub.position);
  assert.deepEqual(fusionPathPoint('hub-fusion',0),fusionHub.position);
- assert.deepEqual(fusionPathPoint('hub-fusion',1),[68,15,12]);
+ assert.deepEqual(fusionPathPoint('hub-fusion',1),[72,-16,5]);
  const excluded=fusionSources.filter(s=>s.available).map(s=>s.id);
  assert.deepEqual(fusionGraph(excluded).links.map(l=>l.id),['AP-W','AP-E']);
  const empty=fusionFrame(28,2,excluded);
@@ -114,12 +114,12 @@ test('mobile Plan central names and roles remain readable across the whole 122-u
  const markup=fusionPlanMarkup({visible:true,selected:'hub',excluded:[]});
  // At 390px viewport the Plan has about 360px usable width: 3.8/3.5 SVG units
  // keep names above 11px and role text above 10px without zooming the facility.
- const labels=[...markup.matchAll(/<g class="fusion-central-mobile-label" transform="translate\(-?[\d.]+ (-?[\d.]+)\)">([\s\S]*?)<\/g>/g)];
+ const labels=[...markup.matchAll(/<g class="fusion-central-mobile-label">([\s\S]*?)<\/g>/g)];
  assert.equal(labels.length,2);
- assert.ok(Number(labels[0][1])<0&&Number(labels[1][1])>0,'central labels are vertically staggered');
+ assert.ok(fusionProcessor.position[0] - fusionHub.position[0] >= 36,'mobile central cards do not overlap horizontally');
  for(const label of labels) {
-  const name=label[2].match(/class="fusion-mobile-name"[^>]*font-size="([\d.]+)"/);
-  const role=label[2].match(/class="fusion-mobile-role"[^>]*font-size="([\d.]+)"/);
+  const name=label[1].match(/class="fusion-mobile-name"[^>]*font-size="([\d.]+)"/);
+  const role=label[1].match(/class="fusion-mobile-role"[^>]*font-size="([\d.]+)"/);
   assert.ok(name&&Number(name[1])*360/122>=11);
   assert.ok(role&&Number(role[1])*360/122>=10);
  }
